@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Sun, Moon, LogIn, ChevronDown, Sparkles, Code, Terminal, Brain, Cpu, Database } from "lucide-react";
+import { Menu, X, Sun, Moon, LogIn, ChevronDown, Sparkles, Code, Terminal, Brain, Cpu, Database, User, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -112,6 +112,40 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isMobileSubOpen, setIsMobileSubOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          setIsLoggedIn(true);
+          setUser(data.user);
+        } else {
+          setIsLoggedIn(false);
+          setUser(null);
+        }
+      } catch (err) {
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    };
+    checkAuth();
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setIsLoggedIn(false);
+      setUser(null);
+      router.push("/login");
+      router.refresh();
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  };
 
   const activeHref = useMemo(() => {
     const exact = navItems.find((i) => i.href === pathname)?.href;
