@@ -357,10 +357,6 @@ const InternshipPrograms = () => {
           </div>
         </aside>
       </main>
-
-      <footer className="py-12 border-t border-zinc-100 text-center bg-zinc-50/30">
-        <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-zinc-300 italic font-sans">Inetz Academy • Technical Residency Portal • 2026</p>
-      </footer>
     </div>
   );
 };

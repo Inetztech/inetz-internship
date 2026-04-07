@@ -79,7 +79,7 @@ const Dashboard = () => {
             <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] text-white font-bold">
               {activeApp?.fullName?.charAt(0) || "S"}
             </div>
-            <span className="text-xs font-bold text-zinc-700">{activeApp?.fullName || "Resident"}</span>
+            <span className="text-xs font-bold text-zinc-700">{activeApp?.fullName || "Student"}</span>
           </div>
         </div>
       </header>
@@ -177,7 +177,7 @@ const Dashboard = () => {
                       {/* Section: Training Details */}
                       <div className="space-y-4 md:col-span-2 pt-6 border-t border-zinc-50">
                         <h4 className="text-[10px] font-black text-zinc-300 uppercase tracking-[0.3em] flex items-center gap-2">
-                          <BadgeCheck className="w-3 h-3" /> Residency Configuration
+                          <BadgeCheck className="w-3 h-3" /> Student Configuration
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
