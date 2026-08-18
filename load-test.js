@@ -8,7 +8,7 @@ async function runBenchmark() {
   console.log('🚀 Starting Authenticated Autocannon Load Test...\n');
 
   const instance = autocannon({
-    url: 'http://127.0.0.1:3000/api/students',
+    url: 'http://127.0.0.1:3000/api/programs',
     connections: 50,
     duration: 10,
     headers: {

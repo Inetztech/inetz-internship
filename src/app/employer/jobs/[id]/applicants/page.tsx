@@ -64,7 +64,7 @@ export default function EmployerApplicantsPage({
     if (!jobId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/jobs/${jobId}/applicants`);
+      const res = await fetch(`/api//jobs/${jobId}/applicants`);
       const data = await res.json();
       if (data.success) {
         setApplicants(data.applicants || []);

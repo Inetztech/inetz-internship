@@ -152,7 +152,7 @@ export default function AddStudentModal({
     };
 
     try {
-      const res = await fetch("/api/admin/students", {
+      const res = await fetch("/api/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
