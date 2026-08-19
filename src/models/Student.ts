@@ -94,7 +94,7 @@ StudentSchema.index({ createdAt: -1 });
 StudentSchema.index({ domain: 1, duration: 1, createdAt: -1 });
 
 // 3. Fast unique checks on duplicate phone/email admissions
-StudentSchema.index({ phone: 1, email: 1 });
+StudentSchema.index({ phone: 1, domain: 1 },{ unique: true });
 
 // 4. Full-text search index for fast keyword lookups
 StudentSchema.index(

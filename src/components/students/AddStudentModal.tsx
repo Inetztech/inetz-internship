@@ -45,7 +45,7 @@ export default function AddStudentModal({
 
   // Student Form State
   const [form, setForm] = useState({
-    fullName: "",
+    name: "",
     email: "",
     phone: "",
     college: "",
@@ -219,8 +219,8 @@ export default function AddStudentModal({
                   type="text"
                   required
                   placeholder="e.g. Arun Kumar"
-                  value={form.fullName}
-                  onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 />
               </div>
@@ -247,7 +247,6 @@ export default function AddStudentModal({
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
                 <input
                   type="email"
-                  required
                   placeholder="student@example.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}

@@ -1,14 +1,26 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Phone, ShieldCheck, Loader2, AlertCircle } from "lucide-react";
+
+export interface StudentDataPayload {
+  name: string;
+  domain: string;
+  duration: string;
+  feesStatus: "Clear" | "Pending" | string;
+}
 
 interface PhoneLinkModalProps {
   isOpen: boolean;
-  onSuccess: () => void;
+  onSuccess: (studentData: StudentDataPayload | null) => void;
 }
 
 export default function PhoneLinkModal({ isOpen, onSuccess }: PhoneLinkModalProps) {
+  const router = useRouter();
+  const { update: updateSession } = useSession();
+
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,17 +32,35 @@ export default function PhoneLinkModal({ isOpen, onSuccess }: PhoneLinkModalProp
     setLoading(true);
     setError(null);
 
+    const cleanPhone = phone.trim().replace(/\D/g, "");
+    if (cleanPhone.length < 10) {
+      setError("Please enter a valid 10-digit mobile number.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/student/link-phone", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        credentials: "include",
+        body: JSON.stringify({ phone: cleanPhone }),
       });
 
       const data = await res.json();
 
       if (data.success) {
-        onSuccess();
+        // 1. Update session token with phone number
+        if (typeof updateSession === "function") {
+          await updateSession({ phone: cleanPhone });
+        }
+
+        // 2. Refresh server components
+        router.refresh();
+
+        // 3. Clear inputs & hand off studentData to close modal
+        setPhone("");
+        onSuccess(data.studentData || null);
       } else {
         setError(data.error || "Failed to link phone number.");
       }
@@ -68,9 +98,10 @@ export default function PhoneLinkModal({ isOpen, onSuccess }: PhoneLinkModalProp
               <input
                 type="tel"
                 required
+                maxLength={10}
                 placeholder="10-digit registered number (e.g. 7093792955)"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                 className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-zinc-900"
               />
             </div>
@@ -79,7 +110,7 @@ export default function PhoneLinkModal({ isOpen, onSuccess }: PhoneLinkModalProp
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            className="w-full py-3 bg-zinc-900 hover:bg-black text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />} Verify & Link Account
           </button>

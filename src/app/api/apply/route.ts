@@ -18,8 +18,10 @@ export async function POST(req: Request) {
     const { fullName, name, email, phone, college, domain, duration, totalBilling, amountToPay } = body;
 
     const studentName = (fullName || name || "").trim();
-    const studentPhone = (phone || "").trim();
-    const studentEmail = (email || "").trim().toLowerCase(); // 🎯 Extract and normalize email
+    const studentPhone = String(phone || "").trim().replace(/\D/g, "");
+    const studentEmail = (email || "").trim().toLowerCase();
+    const targetDomain = (domain || "Web Development").trim();
+    const targetDuration = (duration || "1 Month").trim();
 
     if (!studentName || !studentPhone || !studentEmail) {
       return NextResponse.json(
@@ -36,46 +38,28 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Create Razorpay Order
-    const amountInPaise = Math.round(payAmount * 100);
-    const order = await razorpay.orders.create({
-      amount: amountInPaise,
-      currency: "INR",
-      receipt: `rcpt_${Date.now()}`,
-      notes: {
-        studentName,
-        email: studentEmail,
-        phone: studentPhone,
-      },
-    });
-
-    if (!order) {
-      throw new Error("Razorpay Order creation failed");
-    }
-
     const billingTotal = Number(totalBilling) || payAmount;
 
-    // 2. Find or Create/Update Student in "students" collection
-    let student = await Student.findOne({ 
-      $or: [{ phone: studentPhone }, { email: studentEmail }] 
+    // ── 1. Find Specific Enrollment by Phone + Domain ────────────────────────
+    let student = await Student.findOne({
+      phone: studentPhone,
+      domain: targetDomain,
     });
 
     if (student) {
-      // 🎯 Update existing student profile including email
+      // Update details only for THIS specific domain enrollment
       student.name = studentName;
       student.email = studentEmail;
       if (college) student.college = college.trim();
-      if (domain) student.domain = domain;
-      if (duration) student.duration = duration;
+      student.duration = targetDuration;
       student.totalBilling = billingTotal;
       student.pendingAmount = Math.max(0, billingTotal - (student.totalCollection || 0));
 
       await student.save();
     } else {
-      // 🎯 Create new student record with email included
+      // ── 2. Create NEW Enrollment Document for New Domain ───────────────────
       const lastStudent = await Student.findOne({}, { sNo: 1 }).sort({ sNo: -1 }).lean();
-      // const nextSNo = lastStudent && typeof lastStudent.sNo === "number" ? lastStudent.sNo + 1 : 1;
-      const nextSNo = Date.now()
+      const nextSNo = lastStudent && typeof lastStudent.sNo === "number" ? lastStudent.sNo + 1 : 1;
 
       const now = new Date();
       const dojString = now.toLocaleDateString("en-IN", {
@@ -87,18 +71,39 @@ export async function POST(req: Request) {
       student = await Student.create({
         sNo: nextSNo,
         name: studentName,
-        email: studentEmail, // 🎯 Saved to MongoDB
+        email: studentEmail,
         phone: studentPhone,
-        college: college || "N/A",
-        domain: domain || "Web Development",
-        duration: duration || "1 Month",
+        college: college?.trim() || "N/A",
+        domain: targetDomain,
+        duration: targetDuration,
         totalBilling: billingTotal,
         totalCollection: 0,
         pendingAmount: billingTotal,
         feesStatus: "Pending",
+        certificateStatus: "Pending",
         doj: dojString,
         installments: [],
       });
+    }
+
+    // ── 3. Create Razorpay Order with Domain in Notes ────────────────────────
+    const amountInPaise = Math.round(payAmount * 100);
+    const order = await razorpay.orders.create({
+      amount: amountInPaise,
+      currency: "INR",
+      receipt: `rcpt_${Date.now()}`,
+      notes: {
+        studentId: student._id.toString(),
+        studentName,
+        email: studentEmail,
+        phone: studentPhone,
+        domain: targetDomain,
+        duration: targetDuration,
+      },
+    });
+
+    if (!order) {
+      throw new Error("Razorpay Order creation failed");
     }
 
     return NextResponse.json(

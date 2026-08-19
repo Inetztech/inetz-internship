@@ -24,13 +24,13 @@ export async function GET(req: Request) {
     // 2. Build Filter Match
     const matchQuery: Record<string, any> = {};
 
-    // 🎯 Case-Insensitive Domain Matching
+    // Case-Insensitive Domain Matching
     if (domain && domain.toLowerCase() !== "all") {
       const escapedDomain = domain.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       matchQuery.domain = { $regex: `^${escapedDomain}$`, $options: "i" };
     }
 
-    // 🎯 Case-Insensitive Duration Matching
+    // Case-Insensitive Duration Matching
     if (duration && duration.toLowerCase() !== "all") {
       const escapedDuration = duration.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       matchQuery.duration = { $regex: `^${escapedDuration}$`, $options: "i" };
@@ -64,13 +64,11 @@ export async function GET(req: Request) {
         { $match: matchQuery },
         {
           $facet: {
-            // A. Paginated Student Documents
             paginatedResults: [
               { $sort: { createdAt: -1 } },
               { $skip: skip },
               { $limit: limit },
             ],
-            // B. Global Financial Metrics & Counts for current filter
             metrics: [
               {
                 $project: {
@@ -127,7 +125,6 @@ export async function GET(req: Request) {
     const duesCount = metricSummary.duesCount;
     const totalPending = Math.max(0, totalBilling - totalCollected);
 
-    // Format available domains cleanly
     const formattedAvailableDomains = Array.from(
       new Set(distinctDomains.filter(Boolean))
     );
@@ -188,29 +185,29 @@ export async function POST(req: NextRequest) {
     } = body;
 
     const studentName = (name || "").trim();
-    const studentPhone = (phone || "").trim();
+    const studentPhone = String(phone || "").trim().replace(/\D/g, "");
     const studentEmail = (email || "").trim().toLowerCase();
+    const targetDomain = (domain || "Web Development").trim();
+    const targetDuration = (duration || "1 Month").trim();
 
-    if (!studentName || !studentPhone) {
+    if (!studentName || !studentPhone || studentPhone.length < 10) {
       return NextResponse.json(
-        { success: false, error: "Student Name and Phone Number are required." },
+        { success: false, error: "Valid Student Name and 10-digit Phone Number are required." },
         { status: 400 }
       );
     }
 
-    // Prevent duplicate entries by phone or email
-    const existingStudent = await Student.findOne({
-      $or: [
-        { phone: studentPhone },
-        ...(studentEmail ? [{ email: studentEmail }] : []),
-      ],
+    // 🎯 Check duplicate enrollment ONLY for the SAME domain
+    const existingEnrollment = await Student.findOne({
+      phone: studentPhone,
+      domain: targetDomain,
     }).lean();
 
-    if (existingStudent) {
+    if (existingEnrollment) {
       return NextResponse.json(
         {
           success: false,
-          error: "A student record with this phone number or email already exists.",
+          error: `Student (${studentPhone}) is already enrolled in ${targetDomain}.`,
         },
         { status: 400 }
       );
@@ -223,7 +220,6 @@ export async function POST(req: NextRequest) {
     const nextSNo =
       lastStudent && typeof lastStudent.sNo === "number" ? lastStudent.sNo + 1 : 1;
 
-    // Date formatting
     const displayDate = new Date().toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -255,8 +251,8 @@ export async function POST(req: NextRequest) {
       email: studentEmail || "",
       phone: studentPhone,
       college: college?.trim() || "N/A",
-      domain: domain || "Web Development",
-      duration: duration || "1 Month",
+      domain: targetDomain,
+      duration: targetDuration,
       totalBilling: billingTotal,
       installments: installments,
       totalCollection: initialPaid,
@@ -270,7 +266,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: "Student record created successfully.",
+        message: "Student enrolled successfully.",
         data: newStudent,
       },
       { status: 201 }
@@ -307,6 +303,28 @@ export async function PUT(req: NextRequest) {
       );
     }
 
+    const cleanPhone = phone ? String(phone).trim().replace(/\D/g, "") : currentStudent.phone;
+    const targetDomain = domain ? String(domain).trim() : currentStudent.domain;
+
+    // Check if updating to a domain the student already has another document for
+    if (domain && (targetDomain !== currentStudent.domain || cleanPhone !== currentStudent.phone)) {
+      const duplicateOtherDoc = await Student.findOne({
+        _id: { $ne: id },
+        phone: cleanPhone,
+        domain: targetDomain,
+      }).lean();
+
+      if (duplicateOtherDoc) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Another active record already exists for ${cleanPhone} in ${targetDomain}.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     const updatedBilling =
       totalBilling !== undefined ? Number(totalBilling) : currentStudent.totalBilling;
     const currentCollected = Number(currentStudent.totalCollection || 0);
@@ -317,12 +335,12 @@ export async function PUT(req: NextRequest) {
       id,
       {
         $set: {
-          name: name?.trim(),
-          email: email?.trim().toLowerCase(),
-          phone: phone?.trim(),
-          college: college?.trim(),
-          domain,
-          duration,
+          name: name ? String(name).trim() : currentStudent.name,
+          email: email !== undefined ? String(email).trim().toLowerCase() : currentStudent.email,
+          phone: cleanPhone,
+          college: college !== undefined ? String(college).trim() : currentStudent.college,
+          domain: targetDomain,
+          duration: duration ? String(duration).trim() : currentStudent.duration,
           totalBilling: updatedBilling,
           pendingAmount: newPendingAmount,
           feesStatus: newFeesStatus,
