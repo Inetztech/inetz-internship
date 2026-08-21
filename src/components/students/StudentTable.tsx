@@ -102,7 +102,7 @@ export default function StudentTable({ students, loading, onOpenEditModal }: Stu
                     {st.pendingAmount <= 0 ? "Clear" : `Due: ₹${st.pendingAmount}`}
                   </span>
                 </td>
-                <td className="py-3.5 px-4">
+                {/* <td className="py-3.5 px-4">
                   <span
                     className={cn(
                       "px-2.5 py-1 rounded-full text-[9px] font-black uppercase border tracking-wider",
@@ -113,7 +113,7 @@ export default function StudentTable({ students, loading, onOpenEditModal }: Stu
                   >
                     {st.certificateStatus || "Pending"}
                   </span>
-                </td>
+                </td> */}
                 <td className="py-3.5 px-4 text-right">
                   <button
                     onClick={() => onOpenEditModal(st)}
