@@ -29,6 +29,7 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
   if (!cached.promise) {
     const opts: mongoose.ConnectOptions = {
       bufferCommands: false,
+      dbName: 'internship',
       maxPoolSize: 10,                 // Keep connection count light and fast
       minPoolSize: 0,                  // 🎯 Avoids opening 10 sockets on cold start
       serverSelectionTimeoutMS: 5000,

@@ -14,7 +14,7 @@ const cspHeader = `
     frame-src 'self' https://api.razorpay.com;
     connect-src 'self' https://lumberjack.razorpay.com https://api.razorpay.com https://autocomplete.clearbit.com;
     upgrade-insecure-requests;
-`.replace(/\s{2,}/g, " ").trim();
+`.replace(/\s+/g, " ").trim();
 
 const nextConfig: NextConfig = {
   // ─── IMAGE OPTIMIZATION CONFIG ─────────────────────────────────────────────

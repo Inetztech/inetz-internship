@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Pencil, RefreshCw, BookOpen, Save, ArrowLeft, Loader2, Image as ImageIcon, Video, Star } from "lucide-react";
 
-interface JournalTabProps {
+interface BlogsTabProps {
   view: "list" | "form";
   setView: (view: "list" | "form") => void;
 }
@@ -23,7 +23,7 @@ const EMPTY_FORM = {
   galleryImages: [] as string[],
 };
 
-const CATEGORIES = ["Projects", "Workshops", "Events", "Achievements", "Activities", "Intern Life"];
+const CATEGORIES = ["PROJECTS", "ACHIEVEMENTS", "WEB DEVELOPMENT", "JAVA FULL STACK", "DATA ANALYTICS","DATA SCIENCE","JAVASCRIPT","REACT JS","ARTIFICIAL INTELLIGENCE","MACHINE LEARNING"];
 
 const SectionHeader = ({ label }: { label: string }) => (
   <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-5 select-none">{label}</h3>
@@ -31,9 +31,9 @@ const SectionHeader = ({ label }: { label: string }) => (
 
 const AdminInput = ({ placeholder, value, onChange, type = "text" }: any) => (
   <input
-    type={type} 
-    placeholder={placeholder} 
-    value={value} 
+    type={type}
+    placeholder={placeholder}
+    value={value}
     onChange={e => onChange(e.target.value)}
     className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl text-sm text-zinc-800 placeholder:text-zinc-300 outline-none focus:border-emerald-400 focus:bg-white transition-all"
   />
@@ -49,38 +49,38 @@ const AdminTextarea = ({ placeholder, value, onChange, rows = 4 }: any) => (
   />
 );
 
-export default function JournalTab({ view, setView }: JournalTabProps) {
-  const [journals, setJournals] = useState<any[]>([]);
+export default function BlogsTab({ view, setView }: BlogsTabProps) {
+  const [blogs, setBlogs] = useState<any[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
 
-  const fetchJournals = useCallback(async () => {
+  const fetchBlogs = useCallback(async () => {
     setListLoading(true);
     try {
-      const res = await fetch("/api/journal");
-      if (res.ok) setJournals(await res.json());
+      const res = await fetch("/api/blogs");
+      if (res.ok) setBlogs(await res.json());
     } catch { /* silent */ }
     finally { setListLoading(false); }
   }, []);
 
-  useEffect(() => { 
-    fetchJournals(); 
-  }, [fetchJournals]);
+  useEffect(() => {
+    fetchBlogs();
+  }, [fetchBlogs]);
 
   const handleNew = () => {
-    setEditingId(null); 
-    setFormData({ ...EMPTY_FORM, date: new Date().toISOString().substring(0, 10) }); 
+    setEditingId(null);
+    setFormData({ ...EMPTY_FORM, date: new Date().toISOString().substring(0, 10) });
     setView("form");
   };
 
   const handleEdit = (p: any) => {
     setEditingId(p._id);
-    setFormData({ 
-      title: p.title || "", 
-      slug: p.slug || "", 
-      excerpt: p.excerpt || "", 
+    setFormData({
+      title: p.title || "",
+      slug: p.slug || "",
+      excerpt: p.excerpt || "",
       content: p.content || "",
       category: p.category || "Activities",
       author: p.author || "Inetz Admin",
@@ -95,38 +95,48 @@ export default function JournalTab({ view, setView }: JournalTabProps) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this journal entry?")) return;
+    if (!confirm("Delete this blog entry?")) return;
     try {
-      const res = await fetch(`/api/journal/${id}`, { method: "DELETE" });
-      if (res.ok) setJournals(prev => prev.filter(p => p._id !== id));
+      const res = await fetch(`/api/blogs/${id}`, { method: "DELETE" });
+      if (res.ok) setBlogs(prev => prev.filter(p => p._id !== id));
     } catch { alert("Network error."); }
   };
 
   const handleSave = async () => {
-    if (!formData.title || !formData.slug) return alert("Title and Slug are required.");
-    setUploading(true);
+    if (!formData.title) return alert("Title is required.");
     
+    // Auto-generate slug from title if missing
+    let finalSlug = formData.slug;
+    if (!finalSlug) {
+      finalSlug = formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      setFormData(f => ({ ...f, slug: finalSlug }));
+    }
+    
+    const payload = { ...formData, slug: finalSlug };
+    
+    setUploading(true);
+
     try {
       const method = editingId ? "PUT" : "POST";
-      const url = editingId ? `/api/journal/${editingId}` : "/api/journal";
-      
-      const res = await fetch(url, { 
-        method, 
+      const url = editingId ? `/api/blogs/${editingId}` : "/api/blogs";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData) 
+        body: JSON.stringify(payload)
       });
-      
-      if (res.ok) { 
-        await fetchJournals(); 
-        setView("list"); 
+
+      if (res.ok) {
+        await fetchBlogs();
+        setView("list");
       } else {
         alert("Failed to save journal");
       }
-    } catch (e) { 
+    } catch (e) {
       console.error(e);
-      alert("Network error."); 
-    } finally { 
-      setUploading(false); 
+      alert("Network error.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -160,11 +170,11 @@ export default function JournalTab({ view, setView }: JournalTabProps) {
       <div className="space-y-8 animate-in fade-in duration-150">
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black text-zinc-900 tracking-tight">Journal & Events</h1>
-            <p className="text-zinc-400 text-sm mt-1">{journals.length} posts published</p>
+            <h1 className="text-3xl font-black text-zinc-900 tracking-tight">Blogs & Events</h1>
+            <p className="text-zinc-400 text-sm mt-1">{blogs.length} posts published</p>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={fetchJournals} className="p-3 rounded-2xl border border-zinc-200 bg-white text-zinc-400 hover:text-zinc-700 transition-colors">
+            <button onClick={fetchBlogs} className="p-3 rounded-2xl border border-zinc-200 bg-white text-zinc-400 hover:text-zinc-700 transition-colors">
               <RefreshCw size={16} className={listLoading ? "animate-spin" : ""} />
             </button>
             <button onClick={handleNew} className="bg-zinc-900 text-white px-6 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2 h-11">
@@ -177,14 +187,14 @@ export default function JournalTab({ view, setView }: JournalTabProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(3)].map((_, i) => <div key={i} className="h-48 bg-white rounded-[2rem] border border-zinc-100 animate-pulse" />)}
           </div>
-        ) : journals.length === 0 ? (
+        ) : blogs.length === 0 ? (
           <div className="text-center py-32">
             <BookOpen className="mx-auto text-zinc-300 mb-4" size={24} />
-            <p className="font-bold text-zinc-400 text-sm">No journal entries yet</p>
+            <p className="font-bold text-zinc-400 text-sm">No blog entries yet</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {journals.map(p => (
+            {blogs.map(p => (
               <div key={p._id} className="group bg-white rounded-[2rem] border border-zinc-100 hover:border-zinc-200 hover:shadow-xl transition-all overflow-hidden">
                 <div className="h-36 bg-gradient-to-br from-zinc-100 to-zinc-50 relative flex items-center justify-center overflow-hidden">
                   {p.isFeatured && (
@@ -242,7 +252,6 @@ export default function JournalTab({ view, setView }: JournalTabProps) {
           <section className="bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm space-y-4">
             <SectionHeader label="Post Content" />
             <AdminInput placeholder="Post Title" value={formData.title} onChange={(v: string) => setFormData((f: any) => ({ ...f, title: v }))} />
-            <AdminInput placeholder="URL Slug (e.g., my-first-post)" value={formData.slug} onChange={(v: string) => setFormData((f: any) => ({ ...f, slug: v }))} />
             <AdminTextarea placeholder="Excerpt (Short summary)" value={formData.excerpt} onChange={(v: string) => setFormData((f: any) => ({ ...f, excerpt: v }))} />
             <div className="pt-2">
               <label className="text-xs font-semibold text-zinc-600 mb-2 block">Main Content (HTML/Markdown supported)</label>
@@ -278,7 +287,7 @@ export default function JournalTab({ view, setView }: JournalTabProps) {
         <div className="lg:col-span-4 space-y-8">
           <section className="bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm space-y-4">
             <SectionHeader label="Settings" />
-            
+
             <div className="flex items-center gap-3 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 cursor-pointer" onClick={() => setFormData(f => ({ ...f, isFeatured: !f.isFeatured }))}>
               <div className={`w-5 h-5 rounded flex items-center justify-center border ${formData.isFeatured ? 'bg-blue-500 border-blue-500 text-white' : 'border-zinc-300 bg-white'}`}>
                 {formData.isFeatured && <Star size={12} />}
@@ -295,7 +304,7 @@ export default function JournalTab({ view, setView }: JournalTabProps) {
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            
+
             <div>
               <label className="text-xs font-semibold text-zinc-600 mb-1 block">Publish Date</label>
               <AdminInput type="date" value={formData.date} onChange={(v: string) => setFormData((f: any) => ({ ...f, date: v }))} />
@@ -307,7 +316,7 @@ export default function JournalTab({ view, setView }: JournalTabProps) {
 
           <section className="bg-white p-8 rounded-[2.5rem] border border-zinc-200 shadow-sm space-y-4">
             <SectionHeader label="Media" />
-            
+
             <div>
               <label className="text-xs font-semibold text-zinc-600 mb-2 flex justify-between items-center">
                 Featured Image

@@ -28,7 +28,7 @@ const ProgramsMainPage = () => {
 
     const fetchCatalog = async () => {
       try {
-        const res = await fetch("/api/programs/list", {
+        const res = await fetch("/api/catalog", {
           signal: controller.signal,
         });
         const data = await res.json();
