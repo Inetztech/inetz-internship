@@ -12,7 +12,7 @@ import {
   Mail, 
   Phone, 
   User,
-  CheckCircle2,
+  Calendar,
   AlertCircle
 } from "lucide-react";
 
@@ -33,6 +33,17 @@ interface AddStudentModalProps {
 
 const DEFAULT_DURATIONS = ["1 Week", "2 Weeks", "1 Month", "3 Months", "6 Months"];
 
+// Helper to format Date into Indian standard format (e.g. "21 Aug 2026")
+const formatToIndianDate = (dateString: string) => {
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return dateString;
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 export default function AddStudentModal({
   isOpen,
   onClose,
@@ -43,17 +54,18 @@ export default function AddStudentModal({
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Student Form State
+  // Student Form State (defaults to Web Development & today's date in YYYY-MM-DD)
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     college: "",
     degree: "B.E / B.Tech",
-    domainTrack: "",
+    domain: "Web Development",
     duration: "1 Month",
-    totalFee: 0,
-    paidAmount: 0,
+    doj: new Date().toISOString().split("T")[0],
+    totalBilling: 0,
+    initialPayment: 0,
     paymentMethod: "Cash",
     remarks: "",
   });
@@ -85,9 +97,9 @@ export default function AddStudentModal({
 
             setForm((prev) => ({
               ...prev,
-              domainTrack: prev.domainTrack || firstTrack.title,
+              domain: prev.domain || firstTrack.title,
               duration: firstTrack.duration || prev.duration || "1 Month",
-              totalFee: prev.totalFee || parsedPrice,
+              totalBilling: prev.totalBilling || parsedPrice,
             }));
           }
         }
@@ -109,29 +121,29 @@ export default function AddStudentModal({
         p.duration?.toLowerCase() === form.duration.toLowerCase()
     ) || programs.find((p) => p.title.toLowerCase() === selectedTitle.toLowerCase());
 
-    const matchedPrice = matched?.price ? Number(matched.price) : form.totalFee;
+    const matchedPrice = matched?.price ? Number(matched.price) : form.totalBilling;
 
     setForm((prev) => ({
       ...prev,
-      domainTrack: selectedTitle,
+      domain: selectedTitle,
       duration: matched?.duration || prev.duration,
-      totalFee: matchedPrice,
+      totalBilling: matchedPrice,
     }));
   };
 
   const handleDurationChange = (selectedDuration: string) => {
     const matched = programs.find(
       (p) =>
-        p.title.toLowerCase() === form.domainTrack.toLowerCase() &&
+        p.title.toLowerCase() === form.domain.toLowerCase() &&
         p.duration?.toLowerCase() === selectedDuration.toLowerCase()
     );
 
-    const matchedPrice = matched?.price ? Number(matched.price) : form.totalFee;
+    const matchedPrice = matched?.price ? Number(matched.price) : form.totalBilling;
 
     setForm((prev) => ({
       ...prev,
       duration: selectedDuration,
-      totalFee: matchedPrice,
+      totalBilling: matchedPrice,
     }));
   };
 
@@ -141,14 +153,18 @@ export default function AddStudentModal({
     setSubmitting(true);
     setErrorMsg(null);
 
-    const pendingBalance = Math.max(0, Number(form.totalFee) - Number(form.paidAmount));
-
+    // Format payload with exact field keys expected by POST /api/students
     const payload = {
-      ...form,
-      totalCoursePayment: Number(form.totalFee),
-      paidAmount: Number(form.paidAmount),
-      balanceAmount: pendingBalance,
-      status: pendingBalance === 0 ? "Completed" : "Partial",
+      name: form.name.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim(),
+      college: form.college.trim(),
+      domain: form.domain,
+      duration: form.duration,
+      doj: formatToIndianDate(form.doj),
+      totalBilling: Number(form.totalBilling) || 0,
+      initialPayment: Number(form.initialPayment) || 0,
+      paymentMethod: form.paymentMethod,
     };
 
     try {
@@ -175,9 +191,7 @@ export default function AddStudentModal({
 
   if (!isOpen) return null;
 
-  const balanceAmount = Math.max(0, Number(form.totalFee) - Number(form.paidAmount));
-
-  // Extract distinct course titles
+  const balanceAmount = Math.max(0, Number(form.totalBilling) - Number(form.initialPayment));
   const distinctTrackTitles = Array.from(new Set(programs.map((p) => p.title).filter(Boolean)));
 
   return (
@@ -242,7 +256,7 @@ export default function AddStudentModal({
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-zinc-700">Email Address *</label>
+              <label className="block text-xs font-bold text-zinc-700">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={15} />
                 <input
@@ -271,20 +285,20 @@ export default function AddStudentModal({
             </div>
           </div>
 
-          {/* Course Track & Duration Dynamic Selectors */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-zinc-100">
+          {/* Course Track, Duration & Date of Joining */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-zinc-100">
             
             {/* Dynamic Course Track Selection */}
             <div className="space-y-1">
               <label className="block text-xs font-bold text-zinc-700 flex items-center gap-1.5">
-                <BookOpen size={13} className="text-emerald-600" /> Domain Course Track *
+                <BookOpen size={13} className="text-emerald-600" /> Domain Track *
               </label>
               <select
                 required
-                value={form.domainTrack}
+                value={form.domain}
                 onChange={(e) => handleTrackChange(e.target.value)}
                 disabled={loadingTracks}
-                className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer disabled:opacity-60"
+                className="w-full px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer disabled:opacity-60"
               >
                 {loadingTracks ? (
                   <option value="">Loading course tracks...</option>
@@ -309,12 +323,12 @@ export default function AddStudentModal({
             {/* Duration Selector */}
             <div className="space-y-1">
               <label className="block text-xs font-bold text-zinc-700 flex items-center gap-1.5">
-                <Clock size={13} className="text-emerald-600" /> Duration Track *
+                <Clock size={13} className="text-emerald-600" /> Duration *
               </label>
               <select
                 value={form.duration}
                 onChange={(e) => handleDurationChange(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer"
+                className="w-full px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer"
               >
                 {DEFAULT_DURATIONS.map((dur) => (
                   <option key={dur} value={dur}>
@@ -322,6 +336,20 @@ export default function AddStudentModal({
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Date of Joining (DOJ) */}
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-zinc-700 flex items-center gap-1.5">
+                <Calendar size={13} className="text-emerald-600" /> Date of Joining *
+              </label>
+              <input
+                type="date"
+                required
+                value={form.doj}
+                onChange={(e) => setForm({ ...form, doj: e.target.value })}
+                className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer"
+              />
             </div>
           </div>
 
@@ -333,21 +361,21 @@ export default function AddStudentModal({
                 type="number"
                 required
                 min={0}
-                value={form.totalFee}
-                onChange={(e) => setForm({ ...form, totalFee: Number(e.target.value) })}
+                value={form.totalBilling}
+                onChange={(e) => setForm({ ...form, totalBilling: Number(e.target.value) })}
                 className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-zinc-700">Amount Paid Now (₹) *</label>
+              <label className="block text-xs font-bold text-zinc-700">Initial Payment (₹)</label>
               <input
                 type="number"
                 required
                 min={0}
-                max={form.totalFee}
-                value={form.paidAmount}
-                onChange={(e) => setForm({ ...form, paidAmount: Number(e.target.value) })}
+                max={form.totalBilling}
+                value={form.initialPayment}
+                onChange={(e) => setForm({ ...form, initialPayment: Number(e.target.value) })}
                 className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-emerald-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               />
             </div>
@@ -360,14 +388,14 @@ export default function AddStudentModal({
                 className="w-full px-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:bg-white focus:outline-none cursor-pointer"
               >
                 <option value="Cash">Cash</option>
-                <option value="UPI">UPI / GPay / PhonePe</option>
-                <option value="Net Banking">Net Banking / IMPS</option>
-                <option value="Card">Credit / Debit Card</option>
+                <option value="GPay">GPay / UPI</option>
+                <option value="Net Banking">Net Banking</option>
+                <option value="Card">Card</option>
               </select>
             </div>
           </div>
 
-          {/* Real-time Ledger Summary Pill */}
+          {/* Remaining Balance Summary Pill */}
           <div className="p-3.5 bg-zinc-50 border border-zinc-200 rounded-2xl flex items-center justify-between text-xs">
             <span className="font-bold text-zinc-500">Remaining Balance:</span>
             <span className={`font-black text-sm ${balanceAmount === 0 ? "text-emerald-600" : "text-amber-600"}`}>
