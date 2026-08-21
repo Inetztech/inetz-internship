@@ -6,15 +6,19 @@ import {
   Filter, 
   RefreshCw, 
   UserPlus, 
-  Users, 
-  Wallet, 
-  AlertCircle, 
   Calendar, 
   Clock, 
   RotateCcw,
-  Loader2
+  Loader2,
+  CalendarDays
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+interface DurationStat {
+  count: number;
+  collected: number;
+  pending: number;
+}
 
 interface SummaryData {
   totalStudents: number;
@@ -22,6 +26,11 @@ interface SummaryData {
   totalPending: number;
   duesCount: number;
   clearCount: number;
+  byDuration?: {
+    "6 Months": DurationStat;
+    "3 Months": DurationStat;
+    "Short Term (1W / 2W / 1M)": DurationStat;
+  };
 }
 
 interface ProgramTrack {
@@ -173,54 +182,132 @@ export default function StudentHeaderControls({
     return found || "All";
   }, [durationFilter, availableDurations]);
 
+  const sixMonthStats = summary.byDuration?.["6 Months"] || { count: 0, collected: 0, pending: 0 };
+  const threeMonthStats = summary.byDuration?.["3 Months"] || { count: 0, collected: 0, pending: 0 };
+  const shortTermStats = summary.byDuration?.["Short Term (1W / 2W / 1M)"] || { count: 0, collected: 0, pending: 0 };
+
   return (
     <div className="space-y-4">
-      {/* KPI STATS CARDS */}
+      {/* ─── DURATION-WISE METRICS CARDS ────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">
-              Total Enrolled Students
-            </p>
-            <h3 className="text-2xl font-black text-zinc-900 mt-1">
-              {summary.totalStudents.toLocaleString("en-IN")}
-            </h3>
+        
+        {/* Card 1: 6 Months Track */}
+        <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-sm flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-black text-xs">
+                6M
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-purple-700">
+                  6 Months Track
+                </span>
+                <p className="text-xs font-bold text-zinc-500">Long Term Master</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-xl font-black text-zinc-900 block leading-tight">
+                {sixMonthStats.count.toLocaleString("en-IN")}
+              </span>
+              <span className="text-[10px] font-bold text-zinc-400 uppercase">Students</span>
+            </div>
           </div>
-          <div className="w-12 h-12 bg-zinc-100 text-zinc-700 rounded-2xl flex items-center justify-center">
-            <Users size={22} />
+
+          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-zinc-100 text-xs">
+            <div className="bg-zinc-50 p-2.5 rounded-xl">
+              <p className="text-[9px] font-black uppercase tracking-wider text-emerald-600">Collected</p>
+              <p className="font-black text-sm text-zinc-900 mt-0.5">
+                ₹{sixMonthStats.collected.toLocaleString("en-IN")}
+              </p>
+            </div>
+            <div className="bg-zinc-50 p-2.5 rounded-xl">
+              <p className="text-[9px] font-black uppercase tracking-wider text-amber-600">Pending</p>
+              <p className="font-black text-sm text-amber-700 mt-0.5">
+                ₹{sixMonthStats.pending.toLocaleString("en-IN")}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-emerald-100/80 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase text-emerald-600 tracking-wider">
-              Total Fees Collected
-            </p>
-            <h3 className="text-2xl font-black text-emerald-700 mt-1">
-              ₹{summary.totalCollected.toLocaleString("en-IN")}
-            </h3>
+        {/* Card 2: 3 Months Track */}
+        <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-sm flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-black text-xs">
+                3M
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-700">
+                  3 Months Track
+                </span>
+                <p className="text-xs font-bold text-zinc-500">Advanced Program</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-xl font-black text-zinc-900 block leading-tight">
+                {threeMonthStats.count.toLocaleString("en-IN")}
+              </span>
+              <span className="text-[10px] font-bold text-zinc-400 uppercase">Students</span>
+            </div>
           </div>
-          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
-            <Wallet size={22} />
+
+          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-zinc-100 text-xs">
+            <div className="bg-zinc-50 p-2.5 rounded-xl">
+              <p className="text-[9px] font-black uppercase tracking-wider text-emerald-600">Collected</p>
+              <p className="font-black text-sm text-zinc-900 mt-0.5">
+                ₹{threeMonthStats.collected.toLocaleString("en-IN")}
+              </p>
+            </div>
+            <div className="bg-zinc-50 p-2.5 rounded-xl">
+              <p className="text-[9px] font-black uppercase tracking-wider text-amber-600">Pending</p>
+              <p className="font-black text-sm text-amber-700 mt-0.5">
+                ₹{threeMonthStats.pending.toLocaleString("en-IN")}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-amber-100/80 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase text-amber-600 tracking-wider">
-              Outstanding Balance
-            </p>
-            <h3 className="text-2xl font-black text-amber-700 mt-1">
-              ₹{summary.totalPending.toLocaleString("en-IN")}
-            </h3>
+        {/* Card 3: Short Term Track (1W / 2W / 1 Month combined) */}
+        <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-sm flex flex-col justify-between space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xs">
+                <CalendarDays size={16} />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">
+                  Short Term Tracks
+                </span>
+                <p className="text-xs font-bold text-zinc-500">1W / 2W / 1 Month</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-xl font-black text-zinc-900 block leading-tight">
+                {shortTermStats.count.toLocaleString("en-IN")}
+              </span>
+              <span className="text-[10px] font-bold text-zinc-400 uppercase">Students</span>
+            </div>
           </div>
-          <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
-            <AlertCircle size={22} />
+
+          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-zinc-100 text-xs">
+            <div className="bg-zinc-50 p-2.5 rounded-xl">
+              <p className="text-[9px] font-black uppercase tracking-wider text-emerald-600">Collected</p>
+              <p className="font-black text-sm text-zinc-900 mt-0.5">
+                ₹{shortTermStats.collected.toLocaleString("en-IN")}
+              </p>
+            </div>
+            <div className="bg-zinc-50 p-2.5 rounded-xl">
+              <p className="text-[9px] font-black uppercase tracking-wider text-amber-600">Pending</p>
+              <p className="font-black text-sm text-amber-700 mt-0.5">
+                ₹{shortTermStats.pending.toLocaleString("en-IN")}
+              </p>
+            </div>
           </div>
         </div>
+
       </div>
 
-      {/* CONTROLS & FILTERING BAR */}
+      {/* ─── CONTROLS & FILTERING BAR ────────────────────────────────────────── */}
       <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm space-y-4">
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-4">
@@ -275,7 +362,7 @@ export default function StudentHeaderControls({
             />
           </div>
 
-          {/* 2. Domain Filter Dropdown (Case-Insensitive Both Sides) */}
+          {/* 2. Domain Filter Dropdown */}
           <div className="relative">
             <select
               value={matchedDomainValue}
@@ -304,7 +391,7 @@ export default function StudentHeaderControls({
             )}
           </div>
 
-          {/* 3. Duration Filter Dropdown (Case-Insensitive Both Sides) */}
+          {/* 3. Duration Filter Dropdown */}
           <div className="relative">
             <select
               value={matchedDurationValue}

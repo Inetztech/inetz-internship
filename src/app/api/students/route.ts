@@ -58,7 +58,7 @@ export async function GET(req: Request) {
       ];
     }
 
-    // 3. Single-Pass Pipeline: Pagination + Metrics + Distinct Domains
+    // 3. Single-Pass Pipeline: Pagination + Global Metrics + Duration Buckets
     const [[result], distinctDomains] = await Promise.all([
       Student.aggregate([
         { $match: matchQuery },
@@ -105,6 +105,49 @@ export async function GET(req: Request) {
                 },
               },
             ],
+            // 🎯 Duration Metrics (6 Months, 3 Months, Short Term)
+            durationMetrics: [
+              {
+                $project: {
+                  totalBilling: { $ifNull: ["$totalBilling", 0] },
+                  collected: {
+                    $cond: {
+                      if: {
+                        $and: [
+                          { $isArray: "$installments" },
+                          { $gt: [{ $size: "$installments" }, 0] },
+                        ],
+                      },
+                      then: { $sum: "$installments.paidAmount" },
+                      else: { $ifNull: ["$totalCollection", 0] },
+                    },
+                  },
+                  bucket: {
+                    $switch: {
+                      branches: [
+                        {
+                          case: { $regexMatch: { input: "$duration", regex: /6\s*Month/i } },
+                          then: "6 Months",
+                        },
+                        {
+                          case: { $regexMatch: { input: "$duration", regex: /3\s*Month/i } },
+                          then: "3 Months",
+                        },
+                      ],
+                      default: "Short Term (1W / 2W / 1M)",
+                    },
+                  },
+                },
+              },
+              {
+                $group: {
+                  _id: "$bucket",
+                  count: { $sum: 1 },
+                  billing: { $sum: "$totalBilling" },
+                  collected: { $sum: "$collected" },
+                },
+              },
+            ],
           },
         },
       ]),
@@ -124,6 +167,23 @@ export async function GET(req: Request) {
     const totalCollected = metricSummary.totalCollected;
     const duesCount = metricSummary.duesCount;
     const totalPending = Math.max(0, totalBilling - totalCollected);
+
+    // Format duration metrics map cleanly
+    const durationMap: Record<string, { count: number; collected: number; pending: number }> = {
+      "6 Months": { count: 0, collected: 0, pending: 0 },
+      "3 Months": { count: 0, collected: 0, pending: 0 },
+      "Short Term (1W / 2W / 1M)": { count: 0, collected: 0, pending: 0 },
+    };
+
+    (result?.durationMetrics || []).forEach((item: any) => {
+      if (durationMap[item._id]) {
+        durationMap[item._id] = {
+          count: item.count || 0,
+          collected: item.collected || 0,
+          pending: Math.max(0, (item.billing || 0) - (item.collected || 0)),
+        };
+      }
+    });
 
     const formattedAvailableDomains = Array.from(
       new Set(distinctDomains.filter(Boolean))
@@ -146,6 +206,7 @@ export async function GET(req: Request) {
           totalPending,
           duesCount,
           clearCount: Math.max(0, totalStudents - duesCount),
+          byDuration: durationMap, // 🎯 Consumed by KPI Cards in StudentHeaderControls
         },
       },
       {
@@ -178,6 +239,7 @@ export async function POST(req: NextRequest) {
       college,
       domain,
       duration,
+      doj,
       totalBilling,
       initialPayment,
       paymentMethod,
@@ -197,7 +259,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 🎯 Check duplicate enrollment ONLY for the SAME domain
+    // Check duplicate enrollment ONLY for the SAME domain
     const existingEnrollment = await Student.findOne({
       phone: studentPhone,
       domain: targetDomain,
@@ -220,11 +282,15 @@ export async function POST(req: NextRequest) {
     const nextSNo =
       lastStudent && typeof lastStudent.sNo === "number" ? lastStudent.sNo + 1 : 1;
 
-    const displayDate = new Date().toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+    // Use passed DOJ or fallback to current formatted date
+    const displayDate =
+      doj && String(doj).trim()
+        ? String(doj).trim()
+        : new Date().toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
 
     const billingTotal = Number(totalBilling) || 0;
     const initialPaid = Number(initialPayment) || 0;
@@ -286,7 +352,7 @@ export async function PUT(req: NextRequest) {
   try {
     await connectToDatabase();
     const data = await req.json();
-    const { id, name, email, phone, college, domain, duration, totalBilling } = data;
+    const { id, name, email, phone, college, domain, duration, doj, totalBilling } = data;
 
     if (!id) {
       return NextResponse.json(
@@ -306,7 +372,6 @@ export async function PUT(req: NextRequest) {
     const cleanPhone = phone ? String(phone).trim().replace(/\D/g, "") : currentStudent.phone;
     const targetDomain = domain ? String(domain).trim() : currentStudent.domain;
 
-    // Check if updating to a domain the student already has another document for
     if (domain && (targetDomain !== currentStudent.domain || cleanPhone !== currentStudent.phone)) {
       const duplicateOtherDoc = await Student.findOne({
         _id: { $ne: id },
@@ -341,6 +406,7 @@ export async function PUT(req: NextRequest) {
           college: college !== undefined ? String(college).trim() : currentStudent.college,
           domain: targetDomain,
           duration: duration ? String(duration).trim() : currentStudent.duration,
+          doj: doj ? String(doj).trim() : currentStudent.doj,
           totalBilling: updatedBilling,
           pendingAmount: newPendingAmount,
           feesStatus: newFeesStatus,

@@ -1,9 +1,9 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { connectToDatabase } from "@/lib/db";
-import User from "@/models/user";
+import { connectToDatabase } from "@/lib/db";// Ensure casing matches your model file (e.g., User vs user)
 import bcrypt from "bcryptjs";
+import User from "@/models/user";
 
 const DUMMY_HASH =
   "$2b$10$e8m4L.3vT8g9kS.eG2u.3e3/uW9x8Z7Y6X5W4V3U2T1S0R9Q8P7O";
@@ -11,8 +11,8 @@ const DUMMY_HASH =
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
     CredentialsProvider({
       name: "Credentials",
@@ -29,13 +29,13 @@ export const authOptions: NextAuthOptions = {
 
         const cleanEmail = credentials.email.trim().toLowerCase();
         const dbUser = await User.findOne({ email: cleanEmail }).select(
-          "+password",
+          "+password"
         );
 
         const hashToCompare = dbUser?.password || DUMMY_HASH;
         const isPasswordCorrect = await bcrypt.compare(
           credentials.password,
-          hashToCompare,
+          hashToCompare
         );
 
         if (!dbUser || !isPasswordCorrect) {
@@ -44,11 +44,11 @@ export const authOptions: NextAuthOptions = {
 
         if (dbUser.provider === "google" && !dbUser.password) {
           throw new Error(
-            "This account uses Google Login. Please sign in via Google.",
+            "This account uses Google Login. Please sign in via Google."
           );
         }
 
-        // 🎯 Check if Employer account is pending approval
+        // Check if Employer account is pending approval
         if (dbUser.role === "employer" && dbUser.isApproved === false) {
           throw new Error("Your employer account is currently pending admin approval.");
         }
@@ -59,6 +59,7 @@ export const authOptions: NextAuthOptions = {
           email: dbUser.email as string,
           image: dbUser.image ? String(dbUser.image) : null,
           role: (dbUser.role as string) || "student",
+          phone: (dbUser.phone as string) || "",
           companyName: (dbUser.companyName as string) || "",
         };
       },
@@ -74,7 +75,7 @@ export const authOptions: NextAuthOptions = {
 
           if (!user.email) {
             console.error(
-              "OAuth Error: No email returned from Google provider.",
+              "OAuth Error: No email returned from Google provider."
             );
             return false;
           }
@@ -92,9 +93,10 @@ export const authOptions: NextAuthOptions = {
             });
           }
 
-          // Pass MongoDB ID, role, and companyName down to jwt callback
+          // Pass fields to jwt callback
           user.id = dbUser._id.toString();
           (user as any).role = dbUser.role || "student";
+          (user as any).phone = dbUser.phone || "";
           (user as any).companyName = dbUser.companyName || "";
 
           return true;
@@ -111,14 +113,15 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role || "student";
+        token.phone = (user as any).phone || "";
         token.companyName = (user as any).companyName || "";
       }
 
-      if (trigger === "update" && session?.role) {
-        token.role = session.role;
-        if (session.companyName) {
-          token.companyName = session.companyName;
-        }
+      // Handle client-side session updates (e.g., useSession().update({ phone }))
+      if (trigger === "update" && session) {
+        if (session.role) token.role = session.role;
+        if (session.phone !== undefined) token.phone = session.phone;
+        if (session.companyName) token.companyName = session.companyName;
       }
 
       return token;
@@ -129,12 +132,13 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role || "student";
+        (session.user as any).phone = token.phone || "";
         (session.user as any).companyName = token.companyName || "";
       }
       return session;
     },
 
-    // ─── OPEN REDIRECT SANITIZATION ───────────────────────────────────────────
+    // ─── REDIRECT SANITIZATION ────────────────────────────────────────────────
     async redirect({ url, baseUrl }) {
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
