@@ -10,7 +10,6 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
 
-    // 1. Extract Query Parameters
     const search = searchParams.get("search")?.trim() || "";
     const domain = searchParams.get("domain")?.trim() || "";
     const duration = searchParams.get("duration")?.trim() || "";
@@ -21,19 +20,15 @@ export async function GET(req: Request) {
     const limit = Math.max(1, parseInt(searchParams.get("limit") || "15", 10));
     const skip = (page - 1) * limit;
 
-    // 2. Build Filter Match
+    // ── 1. Match Filter ────────────────────────────────────────────────────────
     const matchQuery: Record<string, any> = {};
 
-    // Case-Insensitive Domain Matching
     if (domain && domain.toLowerCase() !== "all") {
-      const escapedDomain = domain.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      matchQuery.domain = { $regex: `^${escapedDomain}$`, $options: "i" };
+      matchQuery.domain = { $regex: `^${domain.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" };
     }
 
-    // Case-Insensitive Duration Matching
     if (duration && duration.toLowerCase() !== "all") {
-      const escapedDuration = duration.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      matchQuery.duration = { $regex: `^${escapedDuration}$`, $options: "i" };
+      matchQuery.duration = { $regex: `^${duration.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" };
     }
 
     if (fromDate || toDate) {
@@ -47,153 +42,117 @@ export async function GET(req: Request) {
     }
 
     if (search) {
-      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const searchRegex = { $regex: escapedSearch, $options: "i" };
+      const cleanPhone = search.replace(/\D/g, "");
+      const searchRegex = { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
 
       matchQuery.$or = [
         { name: searchRegex },
         { email: searchRegex },
-        { phone: searchRegex },
         { college: searchRegex },
+        ...(cleanPhone.length >= 3 ? [{ phone: { $regex: cleanPhone } }] : []),
       ];
     }
 
-    // 3. Single-Pass Pipeline: Pagination + Global Metrics + Duration Buckets
-    const [[result], distinctDomains] = await Promise.all([
+    // ── 2. Parallel Fast Execution (Indexed Lookups) ───────────────────────────
+    const [students, [summaryStats], distinctDomains] = await Promise.all([
+      // A. Paginated results reading only necessary fields
+      Student.find(matchQuery)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select("-__v")
+        .lean(),
+
+      // B. Fast metric aggregation using direct numeric keys (no array unwinding)
       Student.aggregate([
         { $match: matchQuery },
         {
-          $facet: {
-            paginatedResults: [
-              { $sort: { createdAt: -1 } },
-              { $skip: skip },
-              { $limit: limit },
-            ],
-            metrics: [
-              {
-                $project: {
-                  totalBilling: { $ifNull: ["$totalBilling", 0] },
-                  collected: {
-                    $cond: {
-                      if: {
-                        $and: [
-                          { $isArray: "$installments" },
-                          { $gt: [{ $size: "$installments" }, 0] },
-                        ],
-                      },
-                      then: { $sum: "$installments.paidAmount" },
-                      else: { $ifNull: ["$totalCollection", 0] },
-                    },
-                  },
-                },
+          $group: {
+            _id: null,
+            totalStudents: { $sum: 1 },
+            totalBilling: { $sum: "$totalBilling" },
+            totalCollected: { $sum: "$totalCollection" },
+            totalPending: { $sum: "$pendingAmount" },
+            duesCount: {
+              $sum: { $cond: [{ $eq: ["$feesStatus", "Pending"] }, 1, 0] },
+            },
+            // 6 Months Buckets
+            sixMonthsCount: {
+              $sum: { $cond: [{ $regexMatch: { input: "$duration", regex: /6\s*Month/i } }, 1, 0] },
+            },
+            sixMonthsCollected: {
+              $sum: {
+                $cond: [
+                  { $regexMatch: { input: "$duration", regex: /6\s*Month/i } },
+                  "$totalCollection",
+                  0,
+                ],
               },
-              {
-                $group: {
-                  _id: null,
-                  totalCount: { $sum: 1 },
-                  totalBilling: { $sum: "$totalBilling" },
-                  totalCollected: { $sum: "$collected" },
-                  duesCount: {
-                    $sum: {
-                      $cond: [
-                        { $gt: [{ $subtract: ["$totalBilling", "$collected"] }, 0] },
-                        1,
-                        0,
-                      ],
-                    },
-                  },
-                },
+            },
+            sixMonthsPending: {
+              $sum: {
+                $cond: [
+                  { $regexMatch: { input: "$duration", regex: /6\s*Month/i } },
+                  "$pendingAmount",
+                  0,
+                ],
               },
-            ],
-            // 🎯 Duration Metrics (6 Months, 3 Months, Short Term)
-            durationMetrics: [
-              {
-                $project: {
-                  totalBilling: { $ifNull: ["$totalBilling", 0] },
-                  collected: {
-                    $cond: {
-                      if: {
-                        $and: [
-                          { $isArray: "$installments" },
-                          { $gt: [{ $size: "$installments" }, 0] },
-                        ],
-                      },
-                      then: { $sum: "$installments.paidAmount" },
-                      else: { $ifNull: ["$totalCollection", 0] },
-                    },
-                  },
-                  bucket: {
-                    $switch: {
-                      branches: [
-                        {
-                          case: { $regexMatch: { input: "$duration", regex: /6\s*Month/i } },
-                          then: "6 Months",
-                        },
-                        {
-                          case: { $regexMatch: { input: "$duration", regex: /3\s*Month/i } },
-                          then: "3 Months",
-                        },
-                      ],
-                      default: "Short Term (1W / 2W / 1M)",
-                    },
-                  },
-                },
+            },
+            // 3 Months Buckets
+            threeMonthsCount: {
+              $sum: { $cond: [{ $regexMatch: { input: "$duration", regex: /3\s*Month/i } }, 1, 0] },
+            },
+            threeMonthsCollected: {
+              $sum: {
+                $cond: [
+                  { $regexMatch: { input: "$duration", regex: /3\s*Month/i } },
+                  "$totalCollection",
+                  0,
+                ],
               },
-              {
-                $group: {
-                  _id: "$bucket",
-                  count: { $sum: 1 },
-                  billing: { $sum: "$totalBilling" },
-                  collected: { $sum: "$collected" },
-                },
+            },
+            threeMonthsPending: {
+              $sum: {
+                $cond: [
+                  { $regexMatch: { input: "$duration", regex: /3\s*Month/i } },
+                  "$pendingAmount",
+                  0,
+                ],
               },
-            ],
+            },
           },
         },
       ]),
+
+      // C. Cached or distinct domains
       Student.distinct("domain"),
     ]);
 
-    const students = result?.paginatedResults || [];
-    const metricSummary = result?.metrics?.[0] || {
-      totalCount: 0,
+    const stats = summaryStats || {
+      totalStudents: 0,
       totalBilling: 0,
       totalCollected: 0,
+      totalPending: 0,
       duesCount: 0,
+      sixMonthsCount: 0,
+      sixMonthsCollected: 0,
+      sixMonthsPending: 0,
+      threeMonthsCount: 0,
+      threeMonthsCollected: 0,
+      threeMonthsPending: 0,
     };
 
-    const totalStudents = metricSummary.totalCount;
-    const totalBilling = metricSummary.totalBilling;
-    const totalCollected = metricSummary.totalCollected;
-    const duesCount = metricSummary.duesCount;
-    const totalPending = Math.max(0, totalBilling - totalCollected);
+    const shortTermCount = Math.max(0, stats.totalStudents - (stats.sixMonthsCount + stats.threeMonthsCount));
+    const shortTermCollected = Math.max(0, stats.totalCollected - (stats.sixMonthsCollected + stats.threeMonthsCollected));
+    const shortTermPending = Math.max(0, stats.totalPending - (stats.sixMonthsPending + stats.threeMonthsPending));
 
-    // Format duration metrics map cleanly
-    const durationMap: Record<string, { count: number; collected: number; pending: number }> = {
-      "6 Months": { count: 0, collected: 0, pending: 0 },
-      "3 Months": { count: 0, collected: 0, pending: 0 },
-      "Short Term (1W / 2W / 1M)": { count: 0, collected: 0, pending: 0 },
-    };
-
-    (result?.durationMetrics || []).forEach((item: any) => {
-      if (durationMap[item._id]) {
-        durationMap[item._id] = {
-          count: item.count || 0,
-          collected: item.collected || 0,
-          pending: Math.max(0, (item.billing || 0) - (item.collected || 0)),
-        };
-      }
-    });
-
-    const formattedAvailableDomains = Array.from(
-      new Set(distinctDomains.filter(Boolean))
-    );
+    const totalStudents = stats.totalStudents;
 
     return NextResponse.json(
       {
         success: true,
         students,
-        availableDomains: ["All", ...formattedAvailableDomains],
+        availableDomains: ["All", ...Array.from(new Set(distinctDomains.filter(Boolean)))],
         pagination: {
           totalStudents,
           totalPages: Math.ceil(totalStudents / limit) || 1,
@@ -202,11 +161,27 @@ export async function GET(req: Request) {
         },
         summary: {
           totalStudents,
-          totalCollected,
-          totalPending,
-          duesCount,
-          clearCount: Math.max(0, totalStudents - duesCount),
-          byDuration: durationMap, // 🎯 Consumed by KPI Cards in StudentHeaderControls
+          totalCollected: stats.totalCollected,
+          totalPending: stats.totalPending,
+          duesCount: stats.duesCount,
+          clearCount: Math.max(0, totalStudents - stats.duesCount),
+          byDuration: {
+            "6 Months": {
+              count: stats.sixMonthsCount,
+              collected: stats.sixMonthsCollected,
+              pending: stats.sixMonthsPending,
+            },
+            "3 Months": {
+              count: stats.threeMonthsCount,
+              collected: stats.threeMonthsCollected,
+              pending: stats.threeMonthsPending,
+            },
+            "Short Term (1W / 2W / 1M)": {
+              count: shortTermCount,
+              collected: shortTermCollected,
+              pending: shortTermPending,
+            },
+          },
         },
       },
       {
