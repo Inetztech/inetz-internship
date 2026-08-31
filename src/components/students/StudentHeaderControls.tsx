@@ -8,10 +8,15 @@ import {
   UserPlus, 
   Calendar, 
   Clock, 
-  RotateCcw,
-  Loader2,
-  CalendarDays
+  RotateCcw, 
+  Loader2, 
+  CalendarDays, 
+  Users, 
+  Wallet, 
+  AlertCircle,
+  FileSpreadsheet
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
 
 interface DurationStat {
@@ -101,8 +106,8 @@ export default function StudentHeaderControls({
 }: StudentHeaderControlsProps) {
   const [fetchedTracks, setFetchedTracks] = useState<string[]>([]);
   const [loadingTracks, setLoadingTracks] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
-  // Fetch dynamic tracks from API if not provided by parent
   useEffect(() => {
     if (availableDomains && availableDomains.length > 1) return;
 
@@ -137,7 +142,6 @@ export default function StudentHeaderControls({
     fetchCourseDomains();
   }, [availableDomains]);
 
-  // Combine and deduplicate domains with case-insensitive normalization
   const resolvedDomains = useMemo(() => {
     let sourceList: string[] = [];
 
@@ -168,38 +172,159 @@ export default function StudentHeaderControls({
     return unique;
   }, [availableDomains, fetchedTracks]);
 
-  // Case-insensitive match for the current domain filter value
   const matchedDomainValue = useMemo(() => {
     const target = (domainFilter || "all").trim().toLowerCase();
     const found = resolvedDomains.find((d) => d.trim().toLowerCase() === target);
     return found || "All";
   }, [domainFilter, resolvedDomains]);
 
-  // Case-insensitive match for the current duration filter value
   const matchedDurationValue = useMemo(() => {
     const target = (durationFilter || "all").trim().toLowerCase();
     const found = availableDurations.find((d) => d.trim().toLowerCase() === target);
     return found || "All";
   }, [durationFilter, availableDurations]);
 
-  const sixMonthStats = summary.byDuration?.["6 Months"] || { count: 0, collected: 0, pending: 0 };
-  const threeMonthStats = summary.byDuration?.["3 Months"] || { count: 0, collected: 0, pending: 0 };
-  const shortTermStats = summary.byDuration?.["Short Term (1W / 2W / 1M)"] || { count: 0, collected: 0, pending: 0 };
+  const sixMonthStats = summary?.byDuration?.["6 Months"] || { count: 0, collected: 0, pending: 0 };
+  const threeMonthStats = summary?.byDuration?.["3 Months"] || { count: 0, collected: 0, pending: 0 };
+  const shortTermStats = summary?.byDuration?.["Short Term (1W / 2W / 1M)"] || { count: 0, collected: 0, pending: 0 };
+
+  // ─── EXCEL EXPORT HANDLER ─────────────────────────────────────────────────
+  const handleExportExcel = async () => {
+    try {
+      setExporting(true);
+
+      const params = new URLSearchParams({
+        page: "1",
+        limit: "10000",
+        search: search || "",
+        domain: domainFilter || "",
+        duration: durationFilter || "",
+        fromDate: fromDate || "",
+        toDate: toDate || "",
+      });
+
+      const res = await fetch(`/api/students?${params.toString()}`);
+      const data = await res.json();
+
+      if (!data.success || !Array.isArray(data.students)) {
+        throw new Error(data.error || "Failed to retrieve student records");
+      }
+
+      const rows = data.students.map((st: any, idx: number) => ({
+        "S.No": st.sNo || idx + 1,
+        "Student ID": st.studentId || `#${st.sNo || "N/A"}`,
+        "Admission Date": st.doj || "N/A",
+        "Student Name": st.name || "N/A",
+        "Phone Number": st.phone || "N/A",
+        "Email Address": st.email || "N/A",
+        "College / Institution": st.college || "N/A",
+        "Domain / Track": st.domain || "N/A",
+        "Duration": st.duration || "N/A",
+        "Total Billing (₹)": Number(st.totalBilling) || 0,
+        "Total Collected (₹)": Number(st.totalCollection) || 0,
+        "Pending Dues (₹)": Number(st.pendingAmount) || 0,
+        "Fee Status": st.feesStatus || "Pending",
+        "Certificate Status": st.certificateStatus || "Pending",
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+
+      // Auto-fit column widths
+      const colWidths = [
+        { wch: 6 },
+        { wch: 14 },
+        { wch: 15 },
+        { wch: 24 },
+        { wch: 15 },
+        { wch: 28 },
+        { wch: 26 },
+        { wch: 22 },
+        { wch: 14 },
+        { wch: 16 },
+        { wch: 18 },
+        { wch: 16 },
+        { wch: 12 },
+        { wch: 16 },
+      ];
+      worksheet["!cols"] = colWidths;
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Student Directory");
+
+      const dateStamp = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `Student_Directory_${dateStamp}.xlsx`);
+    } catch (err: any) {
+      console.error("Export to Excel Failed:", err);
+      alert(err.message || "Failed to export data to Excel");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      {/* ─── DURATION-WISE METRICS CARDS ────────────────────────────────────── */}
+    <div className="space-y-5">
+      {/* ─── OVERALL KPI SUMMARY CARDS ────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        {/* Total Enrolled Students */}
+        <div className="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">
+              Total Enrolled Students
+            </span>
+            <h3 className="text-3xl font-black text-zinc-900 tracking-tight">
+              {(summary?.totalStudents || 0).toLocaleString("en-IN")}
+            </h3>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-zinc-50 border border-zinc-200/60 text-zinc-700 flex items-center justify-center">
+            <Users size={22} />
+          </div>
+        </div>
+
+        {/* Total Fees Collected */}
+        <div className="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 block">
+              Total Fees Collected
+            </span>
+            <h3 className="text-3xl font-black text-emerald-600 tracking-tight">
+              ₹{(summary?.totalCollected || 0).toLocaleString("en-IN")}
+            </h3>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center">
+            <Wallet size={22} />
+          </div>
+        </div>
+
+        {/* Outstanding Balance */}
+        <div className="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-xs flex items-center justify-between">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 block">
+              Outstanding Balance
+            </span>
+            <h3 className="text-3xl font-black text-amber-600 tracking-tight">
+              ₹{(summary?.totalPending || 0).toLocaleString("en-IN")}
+            </h3>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center">
+            <AlertCircle size={22} />
+          </div>
+        </div>
+
+      </div>
+
+      {/* ─── DURATION-WISE EXECUTIVE TRACK CARDS ──────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         
         {/* Card 1: 6 Months Track */}
-        <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-sm flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-black text-xs">
+        <div className="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center font-black text-xs border border-purple-100">
                 6M
               </div>
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-purple-700">
+                <span className="text-[10px] font-black uppercase tracking-widest text-purple-700 block">
                   6 Months Track
                 </span>
                 <p className="text-xs font-bold text-zinc-500">Long Term Master</p>
@@ -209,20 +334,24 @@ export default function StudentHeaderControls({
               <span className="text-xl font-black text-zinc-900 block leading-tight">
                 {sixMonthStats.count.toLocaleString("en-IN")}
               </span>
-              <span className="text-[10px] font-bold text-zinc-400 uppercase">Students</span>
+              <span className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">Students</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-zinc-100 text-xs">
-            <div className="bg-zinc-50 p-2.5 rounded-xl">
-              <p className="text-[9px] font-black uppercase tracking-wider text-emerald-600">Collected</p>
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100">
+            <div className="bg-zinc-50/70 p-2.5 rounded-2xl border border-zinc-100">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-emerald-600 block">
+                Collected
+              </span>
               <p className="font-black text-sm text-zinc-900 mt-0.5">
                 ₹{sixMonthStats.collected.toLocaleString("en-IN")}
               </p>
             </div>
-            <div className="bg-zinc-50 p-2.5 rounded-xl">
-              <p className="text-[9px] font-black uppercase tracking-wider text-amber-600">Pending</p>
-              <p className="font-black text-sm text-amber-700 mt-0.5">
+            <div className="bg-zinc-50/70 p-2.5 rounded-2xl border border-zinc-100">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-600 block">
+                Pending
+              </span>
+              <p className="font-black text-sm text-amber-600 mt-0.5">
                 ₹{sixMonthStats.pending.toLocaleString("en-IN")}
               </p>
             </div>
@@ -230,14 +359,14 @@ export default function StudentHeaderControls({
         </div>
 
         {/* Card 2: 3 Months Track */}
-        <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-sm flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-black text-xs">
+        <div className="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center font-black text-xs border border-blue-100">
                 3M
               </div>
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-blue-700">
+                <span className="text-[10px] font-black uppercase tracking-widest text-blue-700 block">
                   3 Months Track
                 </span>
                 <p className="text-xs font-bold text-zinc-500">Advanced Program</p>
@@ -247,35 +376,39 @@ export default function StudentHeaderControls({
               <span className="text-xl font-black text-zinc-900 block leading-tight">
                 {threeMonthStats.count.toLocaleString("en-IN")}
               </span>
-              <span className="text-[10px] font-bold text-zinc-400 uppercase">Students</span>
+              <span className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">Students</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-zinc-100 text-xs">
-            <div className="bg-zinc-50 p-2.5 rounded-xl">
-              <p className="text-[9px] font-black uppercase tracking-wider text-emerald-600">Collected</p>
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100">
+            <div className="bg-zinc-50/70 p-2.5 rounded-2xl border border-zinc-100">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-emerald-600 block">
+                Collected
+              </span>
               <p className="font-black text-sm text-zinc-900 mt-0.5">
                 ₹{threeMonthStats.collected.toLocaleString("en-IN")}
               </p>
             </div>
-            <div className="bg-zinc-50 p-2.5 rounded-xl">
-              <p className="text-[9px] font-black uppercase tracking-wider text-amber-600">Pending</p>
-              <p className="font-black text-sm text-amber-700 mt-0.5">
+            <div className="bg-zinc-50/70 p-2.5 rounded-2xl border border-zinc-100">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-600 block">
+                Pending
+              </span>
+              <p className="font-black text-sm text-amber-600 mt-0.5">
                 ₹{threeMonthStats.pending.toLocaleString("en-IN")}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Card 3: Short Term Track (1W / 2W / 1 Month combined) */}
-        <div className="bg-white p-5 rounded-2xl border border-zinc-200/80 shadow-sm flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xs">
-                <CalendarDays size={16} />
+        {/* Card 3: Short Term Tracks */}
+        <div className="bg-white p-5 rounded-3xl border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black text-xs border border-emerald-100">
+                <CalendarDays size={18} />
               </div>
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 block">
                   Short Term Tracks
                 </span>
                 <p className="text-xs font-bold text-zinc-500">1W / 2W / 1 Month</p>
@@ -285,20 +418,24 @@ export default function StudentHeaderControls({
               <span className="text-xl font-black text-zinc-900 block leading-tight">
                 {shortTermStats.count.toLocaleString("en-IN")}
               </span>
-              <span className="text-[10px] font-bold text-zinc-400 uppercase">Students</span>
+              <span className="text-[9px] font-black text-zinc-400 uppercase tracking-wider">Students</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-zinc-100 text-xs">
-            <div className="bg-zinc-50 p-2.5 rounded-xl">
-              <p className="text-[9px] font-black uppercase tracking-wider text-emerald-600">Collected</p>
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100">
+            <div className="bg-zinc-50/70 p-2.5 rounded-2xl border border-zinc-100">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-emerald-600 block">
+                Collected
+              </span>
               <p className="font-black text-sm text-zinc-900 mt-0.5">
                 ₹{shortTermStats.collected.toLocaleString("en-IN")}
               </p>
             </div>
-            <div className="bg-zinc-50 p-2.5 rounded-xl">
-              <p className="text-[9px] font-black uppercase tracking-wider text-amber-600">Pending</p>
-              <p className="font-black text-sm text-amber-700 mt-0.5">
+            <div className="bg-zinc-50/70 p-2.5 rounded-2xl border border-zinc-100">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-600 block">
+                Pending
+              </span>
+              <p className="font-black text-sm text-amber-600 mt-0.5">
                 ₹{shortTermStats.pending.toLocaleString("en-IN")}
               </p>
             </div>
@@ -307,8 +444,8 @@ export default function StudentHeaderControls({
 
       </div>
 
-      {/* ─── CONTROLS & FILTERING BAR ────────────────────────────────────────── */}
-      <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-sm space-y-4">
+      {/* ─── DIRECTORY HEADER & CONTROLS BOX ─────────────────────────────────── */}
+      <div className="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-xs space-y-4">
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-4">
           <div>
@@ -330,6 +467,21 @@ export default function StudentHeaderControls({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Export to Excel Button */}
+            <button
+              onClick={handleExportExcel}
+              disabled={exporting}
+              className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs rounded-xl flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              title="Download directory as Excel spreadsheet"
+            >
+              {exporting ? (
+                <Loader2 size={15} className="animate-spin text-emerald-700" />
+              ) : (
+                <FileSpreadsheet size={15} className="text-emerald-700" />
+              )}
+              {exporting ? "Exporting..." : "Export Excel"}
+            </button>
+
             <button
               onClick={onRefresh}
               className="p-2 border border-zinc-200 rounded-xl hover:bg-zinc-100 text-zinc-600 transition-colors cursor-pointer"

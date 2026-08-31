@@ -11,6 +11,7 @@ export interface IInstallment {
 
 export interface IStudent extends Document {
   sNo: number;
+  studentId : string,
   doj: string;
   name: string;
   email?: string;
@@ -41,7 +42,7 @@ const InstallmentSchema = new Schema<IInstallment>(
     transactionId: { type: String, default: "N/A", trim: true },
     billingBy: { type: String, required: true, trim: true },
   },
-  { _id: true }
+  { _id: true },
 );
 
 const StudentSchema = new Schema<IStudent>(
@@ -56,9 +57,20 @@ const StudentSchema = new Schema<IStudent>(
       lowercase: true,
       default: "",
     },
+    studentId: {
+      type: String,
+      unique: true,
+      index: true,
+      trim: true,
+    },
     phone: { type: String, required: true, trim: true },
     college: { type: String, required: true, trim: true, default: "N/A" },
-    degree: { type: String, required: false, trim: true, default: "B.E / B.Tech" },
+    degree: {
+      type: String,
+      required: false,
+      trim: true,
+      default: "B.E / B.Tech",
+    },
     domain: { type: String, required: true, trim: true },
     duration: { type: String, required: true, trim: true },
     totalBilling: { type: Number, required: true, min: 0 },
@@ -82,7 +94,7 @@ const StudentSchema = new Schema<IStudent>(
   {
     timestamps: true,
     autoIndex: true,
-  }
+  },
 );
 
 // ─── OPTIMIZED INDEX DEFINITIONS ─────────────────────────────────────────────
@@ -94,12 +106,12 @@ StudentSchema.index({ createdAt: -1 });
 StudentSchema.index({ domain: 1, duration: 1, createdAt: -1 });
 
 // 3. Fast unique checks on duplicate phone/email admissions
-StudentSchema.index({ phone: 1, domain: 1 },{ unique: true });
+StudentSchema.index({ phone: 1, domain: 1 }, { unique: true });
 
 // 4. Full-text search index for fast keyword lookups
 StudentSchema.index(
   { name: "text", email: "text", phone: "text", college: "text" },
-  { weights: { name: 5, phone: 4, email: 3, college: 1 } }
+  { weights: { name: 5, phone: 4, email: 3, college: 1 } },
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -109,9 +121,9 @@ StudentSchema.pre<IStudent>("save", function () {
   const installmentsList = this.installments || [];
   const total = installmentsList.reduce(
     (sum, inst) => sum + (Number(inst.paidAmount) || 0),
-    0
+    0,
   );
-  
+
   this.totalCollection = total;
   this.pendingAmount = Math.max(0, (this.totalBilling || 0) - total);
   this.feesStatus =

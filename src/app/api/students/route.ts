@@ -6,7 +6,7 @@ import { connectToDatabase } from "@/lib/db";
 
 export async function GET(req: Request) {
   try {
-    await connectToDatabase();
+    await connectToDatabase();  
 
     const { searchParams } = new URL(req.url);
 
@@ -201,6 +201,17 @@ export async function GET(req: Request) {
 }
 
 // ─── POST: CREATE A NEW STUDENT PROFILE (ADMIN MANUAL ADMISSION) ─────────────
+// Helper to resolve duration prefix
+function getDurationPrefix(duration: string): string {
+  const clean = (duration || "").toLowerCase();
+  if (clean.includes("6") && clean.includes("month")) {
+    return "INC";
+  }
+  if (clean.includes("3") && clean.includes("month")) {
+    return "IN3";
+  }
+  return "INI"; // Default for 1 Week, 2 Weeks, 1 Month
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -250,12 +261,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Auto-increment sNo cleanly
+    // 1. Auto-increment sNo cleanly
     const lastStudent = await Student.findOne({}, { sNo: 1 })
       .sort({ sNo: -1 })
       .lean();
     const nextSNo =
       lastStudent && typeof lastStudent.sNo === "number" ? lastStudent.sNo + 1 : 1;
+
+    // 2. Auto-generate Custom Student ID based on Duration Track
+    const prefix = getDurationPrefix(targetDuration);
+    const latestWithPrefix = await Student.findOne(
+      { studentId: new RegExp(`^${prefix}`) },
+      { studentId: 1 }
+    )
+      .sort({ studentId: -1 })
+      .collation({ locale: "en", numericOrdering: true })
+      .lean();
+
+    let nextSeqNum = 1;
+    if (latestWithPrefix?.studentId) {
+      const numericPart = parseInt(latestWithPrefix.studentId.replace(prefix, ""), 10);
+      if (!isNaN(numericPart)) {
+        nextSeqNum = numericPart + 1;
+      }
+    }
+
+    const generatedStudentId = `${prefix}${String(nextSeqNum).padStart(3, "0")}`;
 
     // Use passed DOJ or fallback to current formatted date
     const displayDate =
@@ -287,6 +318,7 @@ export async function POST(req: NextRequest) {
 
     const newStudent = new Student({
       sNo: nextSNo,
+      studentId: generatedStudentId, // 🎯 INC001, IN3001, INI001
       doj: displayDate,
       name: studentName,
       email: studentEmail || "",

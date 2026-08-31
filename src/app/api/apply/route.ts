@@ -5,6 +5,18 @@ import Razorpay from "razorpay";
 
 export const runtime = "nodejs";
 
+// Helper to determine ID prefix based on duration
+function getDurationPrefix(duration: string): string {
+  const clean = (duration || "").toLowerCase();
+  if (clean.includes("6") && clean.includes("month")) {
+    return "INC";
+  }
+  if (clean.includes("3") && clean.includes("month")) {
+    return "IN3";
+  }
+  return "INI";
+}
+
 export async function POST(req: Request) {
   try {
     await connectToDatabase();
@@ -55,11 +67,51 @@ export async function POST(req: Request) {
       student.totalBilling = billingTotal;
       student.pendingAmount = Math.max(0, billingTotal - (student.totalCollection || 0));
 
+      // Generate studentId if not existing on older records
+      if (!student.studentId) {
+        const prefix = getDurationPrefix(targetDuration);
+        const latestWithPrefix = await Student.findOne(
+          { studentId: { $regex: `^${prefix}` } },
+          { studentId: 1 }
+        )
+          .sort({ studentId: -1 })
+          .collation({ locale: "en", numericOrdering: true })
+          .lean();
+
+        let nextSeqNum = 1;
+        if (latestWithPrefix?.studentId) {
+          const numericPart = parseInt(latestWithPrefix.studentId.replace(prefix, ""), 10);
+          if (!isNaN(numericPart)) {
+            nextSeqNum = numericPart + 1;
+          }
+        }
+        student.studentId = `${prefix}${String(nextSeqNum).padStart(3, "0")}`;
+      }
+
       await student.save();
     } else {
-      // ── 2. Create NEW Enrollment Document for New Domain ───────────────────
+      // ── 2. Create NEW Enrollment Document with Custom Auto-ID ─────────────
       const lastStudent = await Student.findOne({}, { sNo: 1 }).sort({ sNo: -1 }).lean();
       const nextSNo = lastStudent && typeof lastStudent.sNo === "number" ? lastStudent.sNo + 1 : 1;
+
+      const prefix = getDurationPrefix(targetDuration);
+      const latestWithPrefix = await Student.findOne(
+        { studentId: { $regex: `^${prefix}` } },
+        { studentId: 1 }
+      )
+        .sort({ studentId: -1 })
+        .collation({ locale: "en", numericOrdering: true })
+        .lean();
+
+      let nextSeqNum = 1;
+      if (latestWithPrefix?.studentId) {
+        const numericPart = parseInt(latestWithPrefix.studentId.replace(prefix, ""), 10);
+        if (!isNaN(numericPart)) {
+          nextSeqNum = numericPart + 1;
+        }
+      }
+
+      const generatedStudentId = `${prefix}${String(nextSeqNum).padStart(3, "0")}`;
 
       const now = new Date();
       const dojString = now.toLocaleDateString("en-IN", {
@@ -70,6 +122,7 @@ export async function POST(req: Request) {
 
       student = await Student.create({
         sNo: nextSNo,
+        studentId: generatedStudentId,
         name: studentName,
         email: studentEmail,
         phone: studentPhone,
@@ -93,7 +146,8 @@ export async function POST(req: Request) {
       currency: "INR",
       receipt: `rcpt_${Date.now()}`,
       notes: {
-        studentId: student._id.toString(),
+        mongoId: student._id.toString(),
+        studentId: student.studentId?.toString() || "N/A",
         studentName,
         email: studentEmail,
         phone: studentPhone,
@@ -113,6 +167,7 @@ export async function POST(req: Request) {
         amount: order.amount,
         key: process.env.RAZORPAY_KEY_ID,
         studentId: student._id,
+        customStudentId: student.studentId,
       },
       { status: 201 }
     );
