@@ -20,15 +20,20 @@ export async function GET(req: Request) {
     const limit = Math.max(1, parseInt(searchParams.get("limit") || "15", 10));
     const skip = (page - 1) * limit;
 
-    // ── 1. Match Filter ────────────────────────────────────────────────────────
-    const matchQuery: Record<string, any> = {};
+    // ── 1. Match Filter (Ensuring duration exists) ─────────────────────────────
+    const matchQuery: Record<string, any> = {
+      duration: { $exists: true, $nin: ["", null] },
+    };
 
     if (domain && domain.toLowerCase() !== "all") {
       matchQuery.domain = { $regex: `^${domain.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" };
     }
 
     if (duration && duration.toLowerCase() !== "all") {
-      matchQuery.duration = { $regex: `^${duration.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" };
+      matchQuery.duration = { 
+        $regex: `^${duration.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, 
+        $options: "i" 
+      };
     }
 
     if (fromDate || toDate) {
@@ -201,7 +206,6 @@ export async function GET(req: Request) {
 }
 
 // ─── POST: CREATE A NEW STUDENT PROFILE (ADMIN MANUAL ADMISSION) ─────────────
-// Helper to resolve duration prefix
 function getDurationPrefix(duration: string): string {
   const clean = (duration || "").toLowerCase();
   if (clean.includes("6") && clean.includes("month")) {
@@ -210,7 +214,7 @@ function getDurationPrefix(duration: string): string {
   if (clean.includes("3") && clean.includes("month")) {
     return "IN3";
   }
-  return "INI"; // Default for 1 Week, 2 Weeks, 1 Month
+  return "INI"; 
 }
 
 export async function POST(req: NextRequest) {
@@ -245,7 +249,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check duplicate enrollment ONLY for the SAME domain
     const existingEnrollment = await Student.findOne({
       phone: studentPhone,
       domain: targetDomain,
@@ -261,14 +264,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Auto-increment sNo cleanly
     const lastStudent = await Student.findOne({}, { sNo: 1 })
       .sort({ sNo: -1 })
       .lean();
     const nextSNo =
       lastStudent && typeof lastStudent.sNo === "number" ? lastStudent.sNo + 1 : 1;
 
-    // 2. Auto-generate Custom Student ID based on Duration Track
     const prefix = getDurationPrefix(targetDuration);
     const latestWithPrefix = await Student.findOne(
       { studentId: new RegExp(`^${prefix}`) },
@@ -288,7 +289,6 @@ export async function POST(req: NextRequest) {
 
     const generatedStudentId = `${prefix}${String(nextSeqNum).padStart(3, "0")}`;
 
-    // Use passed DOJ or fallback to current formatted date
     const displayDate =
       doj && String(doj).trim()
         ? String(doj).trim()
@@ -301,7 +301,6 @@ export async function POST(req: NextRequest) {
     const billingTotal = Number(totalBilling) || 0;
     const initialPaid = Number(initialPayment) || 0;
 
-    // Record initial installment receipt if paid during admission
     const installments =
       initialPaid > 0
         ? [
@@ -318,7 +317,7 @@ export async function POST(req: NextRequest) {
 
     const newStudent = new Student({
       sNo: nextSNo,
-      studentId: generatedStudentId, // 🎯 INC001, IN3001, INI001
+      studentId: generatedStudentId,
       doj: displayDate,
       name: studentName,
       email: studentEmail || "",
