@@ -20,9 +20,13 @@ export async function GET(req: Request) {
     const limit = Math.max(1, parseInt(searchParams.get("limit") || "15", 10));
     const skip = (page - 1) * limit;
 
-    // ── 1. Match Filter (Ensuring duration exists) ─────────────────────────────
+    // ── 1. Match Filter (Ensuring duration exists & ignoring Assessment Cleared) ──
     const matchQuery: Record<string, any> = {
-      duration: { $exists: true, $nin: ["", null] },
+      duration: { 
+        $exists: true, 
+        $nin: ["", null], 
+        $not: /assessment\s*cleared/i, // Excludes Assessment Cleared records automatically
+      },
     };
 
     if (domain && domain.toLowerCase() !== "all") {
