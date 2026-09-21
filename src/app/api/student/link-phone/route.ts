@@ -5,8 +5,9 @@ import { getServerSession } from "next-auth/next";
 import { jwtVerify } from "jose";
 import { connectToDatabase } from "@/lib/db";       // 🎯 Corrected: imported from models, not lucide-react
 import { Student } from "@/models/Student";
-import { authOptions } from "../../auth/[...nextauth]/route";
+
 import User from "@/models/user";
+import { authOptions } from "@/lib/authOptions";
 
 export async function POST(req: NextRequest) {
   try {

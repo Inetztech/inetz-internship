@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // Adjust path to your authOptions if placed in lib/auth.ts
+import { authOptions } from "@/lib/authOptions"; // Adjust path to your authOptions if placed in lib/auth.ts
 import { connectToDatabase } from "@/lib/db";
 import Job from "@/models/Job";
 
