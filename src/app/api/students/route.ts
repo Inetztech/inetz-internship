@@ -459,6 +459,7 @@ export async function DELETE(req: NextRequest) {
       { success: true, message: "Student record removed successfully." },
       { status: 200 }
     );
+
   } catch (error: any) {
     console.error("Student deletion failure:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
