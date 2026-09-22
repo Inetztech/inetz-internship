@@ -7,7 +7,6 @@ import {
   Loader2, 
   BookOpen, 
   Clock, 
-  DollarSign, 
   Building, 
   Mail, 
   Phone, 
@@ -33,7 +32,6 @@ interface AddStudentModalProps {
 
 const DEFAULT_DURATIONS = ["1 Week", "2 Weeks", "1 Month", "3 Months", "6 Months"];
 
-// Helper to format Date into Indian standard format (e.g. "21 Aug 2026")
 const formatToIndianDate = (dateString: string) => {
   const d = new Date(dateString);
   if (isNaN(d.getTime())) return dateString;
@@ -54,7 +52,9 @@ export default function AddStudentModal({
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Student Form State (defaults to Web Development & today's date in YYYY-MM-DD)
+  // Track if user selected "Other" to input custom domain
+  const [isCustomDomain, setIsCustomDomain] = useState(false);
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -70,7 +70,7 @@ export default function AddStudentModal({
     remarks: "",
   });
 
-  // 1. Fetch available programs and auto-select default track & pricing
+  // 1. Fetch available programs
   useEffect(() => {
     if (!isOpen) return;
 
@@ -113,8 +113,19 @@ export default function AddStudentModal({
     fetchTracksData();
   }, [isOpen]);
 
-  // 2. Auto-update Fee when Course Track or Duration changes
+  // 2. Handle Track Selection Change
   const handleTrackChange = (selectedTitle: string) => {
+    if (selectedTitle === "OTHER_CUSTOM") {
+      setIsCustomDomain(true);
+      setForm((prev) => ({
+        ...prev,
+        domain: "",
+        totalBilling: 0,
+      }));
+      return;
+    }
+
+    setIsCustomDomain(false);
     const matched = programs.find(
       (p) =>
         p.title.toLowerCase() === selectedTitle.toLowerCase() &&
@@ -153,13 +164,12 @@ export default function AddStudentModal({
     setSubmitting(true);
     setErrorMsg(null);
 
-    // Format payload with exact field keys expected by POST /api/students
     const payload = {
       name: form.name.trim(),
       email: form.email.trim(),
       phone: form.phone.trim(),
       college: form.college.trim(),
-      domain: form.domain,
+      domain: form.domain.trim(),
       duration: form.duration,
       doj: formatToIndianDate(form.doj),
       totalBilling: Number(form.totalBilling) || 0,
@@ -288,36 +298,61 @@ export default function AddStudentModal({
           {/* Course Track, Duration & Date of Joining */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-zinc-100">
             
-            {/* Dynamic Course Track Selection */}
+            {/* Dynamic Course Track Selection / Custom Input */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-zinc-700 flex items-center gap-1.5">
-                <BookOpen size={13} className="text-emerald-600" /> Domain Track *
-              </label>
-              <select
-                required
-                value={form.domain}
-                onChange={(e) => handleTrackChange(e.target.value)}
-                disabled={loadingTracks}
-                className="w-full px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer disabled:opacity-60"
-              >
-                {loadingTracks ? (
-                  <option value="">Loading course tracks...</option>
-                ) : distinctTrackTitles.length > 0 ? (
-                  distinctTrackTitles.map((title) => (
-                    <option key={title} value={title}>
-                      {title}
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="Web Development">Web Development (MERN)</option>
-                    <option value="Java Full Stack">Java Full Stack</option>
-                    <option value="Python Development">Python Development</option>
-                    <option value="Data Analytics">Data Analytics</option>
-                    <option value="AI & Machine Learning">AI & Machine Learning</option>
-                  </>
+              <label className="block text-xs font-bold text-zinc-700 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <BookOpen size={13} className="text-emerald-600" /> Domain Track *
+                </span>
+                {isCustomDomain && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomDomain(false);
+                      if (distinctTrackTitles.length > 0) {
+                        handleTrackChange(distinctTrackTitles[0]);
+                      }
+                    }}
+                    className="text-[10px] text-emerald-600 hover:underline font-bold"
+                  >
+                    ← Back to list
+                  </button>
                 )}
-              </select>
+              </label>
+
+              {isCustomDomain ? (
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter custom domain..."
+                  value={form.domain}
+                  onChange={(e) => setForm({ ...form, domain: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-zinc-50 border border-emerald-500 rounded-xl text-xs font-bold text-zinc-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                />
+              ) : (
+                <select
+                  required
+                  value={form.domain}
+                  onChange={(e) => handleTrackChange(e.target.value)}
+                  disabled={loadingTracks}
+                  className="w-full px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer disabled:opacity-60"
+                >
+                  {loadingTracks ? (
+                    <option value="">Loading course tracks...</option>
+                  ) : (
+                    <>
+                      {distinctTrackTitles.map((title) => (
+                        <option key={title} value={title}>
+                          {title}
+                        </option>
+                      ))}
+                      <option value="OTHER_CUSTOM" className="font-bold text-emerald-600">
+                        + Other (Custom Domain...)
+                      </option>
+                    </>
+                  )}
+                </select>
+              )}
             </div>
 
             {/* Duration Selector */}
