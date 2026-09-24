@@ -10,7 +10,7 @@ import User from "@/models/user";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase();
@@ -18,9 +18,7 @@ export async function GET(
     // Ensure models are registered in Mongoose memory
     const _registered = [Job, Student, User];
 
-    // Handle Next.js Promise params unwrapping safely
-    const resolvedParams = params instanceof Promise ? await params : params;
-    const rawJobId = resolvedParams?.id;
+    const { id: rawJobId } = await params;
 
     if (!rawJobId) {
       return NextResponse.json(
