@@ -1,11 +1,5 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error("❌ Please define MONGODB_URI in your environment variables.");
-}
-
 declare global {
   var mongooseCache: {
     conn: typeof mongoose | null;
@@ -25,19 +19,27 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
     return cached.conn;
   }
 
+  // Validated at call time, not module load: build-time module analysis
+  // (e.g. "Collecting page data") imports this file without runtime env vars.
+  const MONGODB_URI = process.env.MONGODB_URI;
+
+  if (!MONGODB_URI) {
+    throw new Error("Please define MONGODB_URI in your environment variables.");
+  }
+
   // 2. Reuse in-flight connection promise
   if (!cached.promise) {
     const opts: mongoose.ConnectOptions = {
       bufferCommands: false,
       dbName: 'internship',
-      maxPoolSize: 10,                 // Keep connection count light and fast
-      minPoolSize: 0,                  // 🎯 Avoids opening 10 sockets on cold start
+      maxPoolSize: 10,
+      minPoolSize: 0,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     };
 
     cached.promise = mongoose
-      .connect(MONGODB_URI as string, opts)
+      .connect(MONGODB_URI, opts)
       .then((m) => {
         return m;
       })
