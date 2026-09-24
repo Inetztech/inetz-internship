@@ -9,7 +9,7 @@ import Application from "@/models/Application";
 // ────────────────── PATCH: UPDATE JOB LISTING ──────────────────
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase();
@@ -19,8 +19,7 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const resolvedParams = params instanceof Promise ? await params : params;
-    const jobId = resolvedParams?.id;
+    const { id: jobId } = await params;
 
     if (!jobId || !mongoose.Types.ObjectId.isValid(jobId)) {
       return NextResponse.json({ success: false, error: "Invalid Job ID" }, { status: 400 });
@@ -65,7 +64,7 @@ export async function PATCH(
 // ────────────────── DELETE: REMOVE JOB & APPLICATIONS ──────────────────
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase();
@@ -75,8 +74,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const resolvedParams = params instanceof Promise ? await params : params;
-    const jobId = resolvedParams?.id;
+    const { id: jobId } = await params;
 
     if (!jobId || !mongoose.Types.ObjectId.isValid(jobId)) {
       return NextResponse.json({ success: false, error: "Invalid Job ID" }, { status: 400 });
