@@ -39,11 +39,9 @@ interface ApplicantRecord {
 export default function EmployerApplicantsPage({
   params,
 }: {
-  params: Promise<{ id: string }> | { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  // Safe param unwrapping for Next.js App Router
-  const resolvedParams = params instanceof Promise ? use(params) : params;
-  const jobId = resolvedParams?.id;
+  const { id: jobId } = use(params);
 
   const [applicants, setApplicants] = useState<ApplicantRecord[]>([]);
   const [jobTitle, setJobTitle] = useState("");
