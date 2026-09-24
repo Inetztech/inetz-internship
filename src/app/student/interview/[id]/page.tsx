@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, use } from "react";
 import { useSession } from "next-auth/react";
 import { 
   Lock, 
@@ -32,7 +32,8 @@ interface ApplicationDetails {
   interviewLink?: string;
 }
 
-export default function StudentInterviewPortal({ params }: { params: { id: string } }) {
+export default function StudentInterviewPortal({ params }: { params: Promise<{ id: string }> }) {
+  const { id: applicationId } = use(params);
   const { data: session } = useSession();
   const [application, setApplication] = useState<ApplicationDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +48,7 @@ export default function StudentInterviewPortal({ params }: { params: { id: strin
 
       if (data.success) {
         const found = (data.applications as ApplicationDetails[]).find(
-          (app) => app._id === params.id
+          (app) => app._id === applicationId
         );
 
         if (found) {
@@ -63,7 +64,7 @@ export default function StudentInterviewPortal({ params }: { params: { id: strin
     } finally {
       setLoading(false);
     }
-  }, [params.id]);
+  }, [applicationId]);
 
   useEffect(() => {
     fetchApplicationDetails();
