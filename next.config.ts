@@ -17,6 +17,11 @@ const cspHeader = `
 `.replace(/\s+/g, " ").trim();
 
 const nextConfig: NextConfig = {
+  // ─── DOCKER OUTPUT ──────────────────────────────────────────────────────────
+  // Emits .next/standalone with only the traced runtime dependencies,
+  // so the final image does not need a full node_modules install.
+  output: "standalone",
+
   // ─── IMAGE OPTIMIZATION CONFIG ─────────────────────────────────────────────
   images: {
     remotePatterns: [
