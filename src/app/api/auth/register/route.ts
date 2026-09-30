@@ -1,23 +1,22 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import User from "@/models/user"; // Fixed path to match your layout standard
-import bcrypt from "bcryptjs"; 
 
 export async function POST(req: Request) {
   try {
     const { name, email, password } = await req.json();
 
     // 1. Basic validation
-    if (!email || !password) {
+    if (!name?.trim() || !email || !password) {
       return NextResponse.json(
-        { error: "Email and password are required fields." },
+        { error: "Name, email, and password are required fields." },
         { status: 400 }
       );
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       return NextResponse.json(
-        { error: "Password must be at least 6 characters long." },
+        { error: "Password must be at least 8 characters long." },
         { status: 400 }
       );
     }
@@ -36,14 +35,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4. Hash the password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // 5. Create User with fields synced to match your NextAuth requirements
+    // The User model hashes the password once in its pre-save hook.
     const newUser = await User.create({ 
-      name: name || undefined, 
+      name: name.trim(),
       email: normalizedEmail, 
-      password: hashedPassword,
+      password,
       role: "student", // Matches standard fallback roles expected by UI layouts
       provider: "credentials", // Tagged to separate from Google sign-ups safely
     });
@@ -55,7 +51,8 @@ export async function POST(req: Request) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error("STUDENT_REGISTER_ERROR:", error);
+    return NextResponse.json({ error: "Registration failed. Please try again." }, { status: 500 });
   }
 }

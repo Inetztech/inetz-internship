@@ -4,17 +4,17 @@ import React from "react";
 import { signOut } from "next-auth/react";
 import {
   User,
-  Briefcase,
   GraduationCap,
   CreditCard,
   LogOut,
   Building
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface SidebarProps {
-  activeTab: "profile" | "applications" | "courses" | "transactions";
-  setActiveTab: (tab: "profile" | "applications" | "courses" | "transactions") => void;
+  activeTab: "profile" | "courses" | "transactions";
+  setActiveTab: (tab: "profile" | "courses" | "transactions") => void;
   userName: string;
   userEmail: string;
 }
@@ -25,80 +25,75 @@ export default function Sidebar({
   userName,
   userEmail,
 }: SidebarProps) {
+  const router = useRouter();
+
   return (
-    <aside className="w-full md:w-64 bg-zinc-900 text-white shrink-0 p-6 flex flex-col justify-between border-r border-zinc-800">
-      <div className="space-y-8">
+    <aside className="w-full shrink-0 border-b border-slate-200 bg-white px-4 py-4 md:min-h-[calc(100vh-7rem)] md:w-72 md:border-b-0 md:border-r md:px-5 md:py-8">
+      <div className="flex h-full flex-col">
         {/* User Card */}
-        <div className="flex items-center gap-3 pb-6 border-b border-zinc-800">
-          <div className="w-10 h-10 bg-emerald-500 text-white font-black rounded-xl flex items-center justify-center text-sm">
+        <div className="flex items-center gap-3 border-b border-slate-100 pb-5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white shadow-sm">
             {userName ? userName.charAt(0).toUpperCase() : "S"}
           </div>
           <div className="overflow-hidden">
-            <h2 className="text-sm font-bold truncate">{userName || "Student"}</h2>
-            <p className="text-[10px] text-zinc-400 truncate">{userEmail}</p>
+            <h2 className="truncate text-sm font-semibold text-slate-900">{userName || "Student"}</h2>
+            <p className="mt-0.5 truncate text-xs text-slate-500">{userEmail}</p>
           </div>
         </div>
 
         {/* Navigation Links */}
-        <nav className="space-y-1 text-xs font-semibold">
+        <nav className="mt-5 grid grid-cols-3 gap-2 md:grid-cols-1 md:gap-1.5" aria-label="Student dashboard">
           <button
             onClick={() => setActiveTab("profile")}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
+            className={`flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors md:justify-start ${
               activeTab === "profile"
-                ? "bg-emerald-500 text-white font-bold"
-                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                ? "bg-blue-50 text-blue-700"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
-            <User size={16} /> My Profile & Resume
-          </button>
-
-          <button
-            onClick={() => setActiveTab("applications")}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
-              activeTab === "applications"
-                ? "bg-emerald-500 text-white font-bold"
-                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-            }`}
-          >
-            <Briefcase size={16} /> Applications & Interviews
+            <User size={17} /> <span className="hidden sm:inline">My Profile</span><span className="sm:hidden">Profile</span>
           </button>
 
           <button
             onClick={() => setActiveTab("courses")}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
+            className={`flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors md:justify-start ${
               activeTab === "courses"
-                ? "bg-emerald-500 text-white font-bold"
-                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                ? "bg-blue-50 text-blue-700"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
-            <GraduationCap size={16} /> My Internship Courses
+            <GraduationCap size={17} /> <span className="hidden sm:inline">My Courses</span><span className="sm:hidden">Courses</span>
           </button>
 
           <button
             onClick={() => setActiveTab("transactions")}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
+            className={`flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors md:justify-start ${
               activeTab === "transactions"
-                ? "bg-emerald-500 text-white font-bold"
-                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                ? "bg-blue-50 text-blue-700"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
-            <CreditCard size={16} /> Payment History
+            <CreditCard size={17} /> <span className="hidden sm:inline">Payment History</span><span className="sm:hidden">Payments</span>
           </button>
         </nav>
       </div>
 
       {/* Sidebar Footer */}
-      <div className="pt-6 border-t border-zinc-800 space-y-3">
+      <div className="mt-6 space-y-2 border-t border-slate-100 pt-5 md:mt-auto">
         <Link
           href="/jobs"
-          className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
         >
           <Building size={14} /> Browse Job Openings
         </Link>
 
         <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="w-full flex items-center gap-2 text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors px-1"
+          onClick={async () => {
+            await signOut({ redirect: false });
+            router.push("/login");
+            router.refresh();
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50"
         >
           <LogOut size={14} /> Sign Out
         </button>

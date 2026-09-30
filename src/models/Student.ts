@@ -4,9 +4,10 @@ export interface IInstallment {
   receiptNo: string;
   date: string;
   paidAmount: number;
-  paymentMethod: "Cash" | "GPay";
+  paymentMethod: "Cash" | "GPay" | "UPI" | "Card" | "Netbanking" | "Wallet" | "EMI" | "Razorpay Online";
   transactionId: string;
   billingBy: string;
+  createdAt?: Date;
 }
 
 export interface IStudent extends Document {
@@ -38,9 +39,14 @@ const InstallmentSchema = new Schema<IInstallment>(
     receiptNo: { type: String, required: true, trim: true },
     date: { type: String, required: true },
     paidAmount: { type: Number, required: true, min: 0 },
-    paymentMethod: { type: String, enum: ["Cash", "GPay"], required: true },
+    paymentMethod: {
+      type: String,
+      enum: ["Cash", "GPay", "UPI", "Card", "Netbanking", "Wallet", "EMI", "Razorpay Online"],
+      required: true,
+    },
     transactionId: { type: String, default: "N/A", trim: true },
     billingBy: { type: String, required: true, trim: true },
+    createdAt: { type: Date, default: Date.now },
   },
   { _id: true },
 );

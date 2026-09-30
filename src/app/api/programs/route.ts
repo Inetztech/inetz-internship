@@ -1,6 +1,7 @@
 import { connectToDatabase } from "@/lib/db";
 import Program from "@/models/Program";
 import { NextResponse } from "next/server";
+import { requireRole } from "@/lib/api-auth";
 
 // Cache on Vercel Edge CDN for 1 hour with background revalidation
 export const revalidate = 3600;
@@ -43,6 +44,8 @@ export async function GET(req: Request) {
 // 2. POST: Saves or updates structured tracks with slug normalization
 export async function POST(req: Request) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     await connectToDatabase();
     const body = await req.json();
 
@@ -81,6 +84,8 @@ export async function POST(req: Request) {
 // 3. DELETE: Removes a program by ID or URL Query ID
 export async function DELETE(req: Request) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     await connectToDatabase();
 
     let targetId: string | null = null;

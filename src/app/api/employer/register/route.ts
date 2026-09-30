@@ -27,9 +27,9 @@ export async function POST(req: Request) {
     }
 
     // Password Length Check
-    if (password.length < 6) {
+    if (password.length < 8) {
       return NextResponse.json(
-        { success: false, error: "Password must be at least 6 characters long." },
+        { success: false, error: "Password must be at least 8 characters long." },
         { status: 400 }
       );
     }
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       companyWebsite: companyWebsite ? companyWebsite.trim() : "",
       phone: phone.trim(),
       provider: "credentials",
-      isApproved: true, // Flip to false if manual admin verification is required
+      isApproved: true,
     });
 
     // Remove password from response payload

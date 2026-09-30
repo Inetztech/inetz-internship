@@ -104,6 +104,10 @@ export const authOptions: NextAuthOptions = {
             });
           }
 
+          if (dbUser.role === "employer" && dbUser.isApproved === false) {
+            return false;
+          }
+
           user.id = dbUser._id.toString();
 
           (user as any).role = dbUser.role || "student";
@@ -133,16 +137,8 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (trigger === "update" && session) {
-        if (session.role) {
-          token.role = session.role;
-        }
-
         if (session.phone !== undefined) {
           token.phone = session.phone;
-        }
-
-        if (session.companyName) {
-          token.companyName = session.companyName;
         }
       }
 

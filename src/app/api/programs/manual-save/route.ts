@@ -4,9 +4,12 @@ import { Readable } from "stream";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/lib/db";
 import Program from "@/models/Program";
+import { requireRole } from "@/lib/api-auth";
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     await connectToDatabase();
 
     const formData = await req.formData();

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireRole } from "@/lib/api-auth";
 import { connectToDatabase } from "@/lib/db";
 import { Blog } from "@/models/Blog";
 import { v2 as cloudinary } from 'cloudinary';
@@ -27,6 +28,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     await connectToDatabase();
     
     const body = await req.json();

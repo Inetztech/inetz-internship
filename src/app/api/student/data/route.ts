@@ -1,15 +1,19 @@
 import { connectToDatabase } from "@/lib/db";
 import { Student } from "@/models/Student";
 import { NextResponse } from "next/server";// Ensure path matches your project structure
+import { requireRole } from "@/lib/api-auth";
 
 // ─── GET: FETCH STUDENT PROFILE BY EMAIL OR PHONE ──────────────────────────
 export async function GET(req: Request) {
   try {
+    const auth = await requireRole("student", "admin");
+    if (auth.error) return auth.error;
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
-    const rawEmail = searchParams.get("email");
-    const rawPhone = searchParams.get("phone");
+    const sessionUser = auth.session.user as { email?: string | null; role?: string };
+    const rawEmail = sessionUser.role === "admin" ? searchParams.get("email") : sessionUser.email;
+    const rawPhone = sessionUser.role === "admin" ? searchParams.get("phone") : null;
 
     if (!rawEmail && !rawPhone) {
       return NextResponse.json(
@@ -79,6 +83,8 @@ export async function GET(req: Request) {
 // ─── POST: LINK LOGGED-IN EMAIL TO EXISTING PHONE RECORD ────────────────────
 export async function POST(req: Request) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     await connectToDatabase();
 
     const body = await req.json();

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, LogOut, LayoutDashboard, User, ShieldCheck, Briefcase } from "lucide-react";
+import { CalendarDays, Menu, X, LogOut, LayoutDashboard, User, ShieldCheck, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -18,6 +18,16 @@ const navItems = [
   { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
 ] as const;
+
+function getNextMonday() {
+  const date = new Date();
+  date.setDate(date.getDate() + ((8 - date.getDay()) % 7 || 7));
+  return date.toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
 
 function InetzLogo({ className }: { className?: string }) {
   return (
@@ -42,9 +52,12 @@ export function Navbar() {
   const isLoading = status === "loading";
   const isLoggedIn = status === "authenticated";
   const user = session?.user as any; 
+  const nextBatchDate = useMemo(() => getNextMonday(), []);
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: "/" });
+    await signOut({ redirect: false });
+    router.push("/");
+    router.refresh();
   };
 
   const handleRegisterClick = () => {
@@ -190,6 +203,17 @@ export function Navbar() {
           >
             {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </Button>
+        </div>
+      </div>
+
+      <div className="bg-blue-700 px-4 py-1 text-white shadow-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 text-center text-xs font-bold sm:text-sm">
+          <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-yellow-300 shadow-[0_0_10px_rgba(253,224,71,0.9)]" aria-hidden="true" />
+          <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span>New batch starts {nextBatchDate}</span>
+          <Link href="/apply" className="ml-1 border-b border-blue-200 font-bold text-blue-100 transition hover:border-white hover:text-white">
+            Apply now <span aria-hidden="true">→</span>
+          </Link>
         </div>
       </div>
 

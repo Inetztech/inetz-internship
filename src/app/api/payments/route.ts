@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireRole } from "@/lib/api-auth";
 import { Student } from "@/models/Student";
 import { connectToDatabase } from "@/lib/db";
+import { sendPaymentReceipt } from "@/lib/payment-receipt-email";
 
 // 🎯 Safe Date Parser: Converts "17 Aug 2026", "10 Oct 2025", "2026-08-17", etc. into timestamps
 function parseCalendarDate(dateStr?: string): number {
@@ -39,6 +41,8 @@ function parseCalendarDate(dateStr?: string): number {
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
@@ -84,22 +88,22 @@ export async function GET(req: NextRequest) {
     // 2. Fetch all matching installments
     const pipeline: any[] = [
       { $match: matchStage },
-      { $unwind: { path: "$installments", preserveNullAndEmptyArrays: true } },
+      { $unwind: "$installments" },
       {
         $project: {
-          receiptNo: { $ifNull: ["$installments.receiptNo", "REGISTRATION-PENDING"] },
-          date: { $ifNull: ["$installments.date", "$doj"] },
+          receiptNo: "$installments.receiptNo",
+          date: "$installments.date",
           name: 1,
           phone: 1,
           college: { $ifNull: ["$college", "N/A"] },
           domain: { $ifNull: ["$domain", "Web Development"] },
           courseName: { $ifNull: ["$duration", "1 Month"] },
-          paidAmount: { $ifNull: ["$installments.paidAmount", 0] },
-          paymentMethod: { $ifNull: ["$installments.paymentMethod", "Cash"] },
-          transactionId: { $ifNull: ["$installments.transactionId", "N/A"] },
-          billingBy: { $ifNull: ["$installments.billingBy", "System Registration"] },
+          paidAmount: "$installments.paidAmount",
+          paymentMethod: "$installments.paymentMethod",
+          transactionId: "$installments.transactionId",
+          billingBy: "$installments.billingBy",
           totalCoursePayment: { $ifNull: ["$totalBilling", 0] },
-          createdAt: { $ifNull: ["$installments.createdAt", "$createdAt"] },
+          createdAt: "$installments.createdAt",
         },
       },
     ];
@@ -120,19 +124,12 @@ export async function GET(req: NextRequest) {
 
     // 🎯 4. DATE-WISE SORT: Strictly sorts by the displayed calendar date (Latest Date First)
     filteredTransactions.sort((a, b) => {
-      const dateA = parseCalendarDate(a.date);
-      const dateB = parseCalendarDate(b.date);
+      const dateA = new Date(a.createdAt || 0).getTime() || parseCalendarDate(a.date);
+      const dateB = new Date(b.createdAt || 0).getTime() || parseCalendarDate(b.date);
 
       // Primary Sort: Transaction Date descending
       if (dateB !== dateA) {
         return dateB - dateA;
-      }
-
-      // Secondary Sort: Fallback to creation timestamp or receipt number if dates are identical
-      const createdA = new Date(a.createdAt || 0).getTime();
-      const createdB = new Date(b.createdAt || 0).getTime();
-      if (createdB !== createdA) {
-        return createdB - createdA;
       }
 
       return String(b.receiptNo).localeCompare(String(a.receiptNo));
@@ -155,7 +152,7 @@ export async function GET(req: NextRequest) {
       const match = activeStudents.find((s: any) => s.phone === tx.phone);
       let calculatedAlreadyPaid = 0;
 
-      if (match && match.installments && tx.receiptNo !== "REGISTRATION-PENDING") {
+      if (match && match.installments) {
         const sortedHistory = [...match.installments].sort(
           (a: any, b: any) => parseCalendarDate(a.date) - parseCalendarDate(b.date)
         );
@@ -207,6 +204,8 @@ export async function GET(req: NextRequest) {
 // ─── POST: SAVE PAYMENT (HANDLES CREATION & NESTED INSTALLMENT APPENDS) ───
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     await connectToDatabase();
     const data = await req.json();
     const currentPaid = Number(data.paidAmount) || 0;
@@ -243,7 +242,28 @@ export async function POST(req: NextRequest) {
       await student.save();
     }
     
-    return NextResponse.json({ success: true, receiptNo: data.receiptNo });
+    let emailSent = false;
+    if (student.email) {
+      try {
+        await sendPaymentReceipt({
+          to: student.email,
+          studentName: student.name,
+          receiptNo: data.receiptNo,
+          paymentId: data.transactionId || data.receiptNo,
+          date: data.displayDate,
+          course: `${student.domain} - ${student.duration}`,
+          amountPaid: currentPaid,
+          totalFee: student.totalBilling,
+          totalPaid: student.totalCollection,
+          balance: student.pendingAmount,
+        });
+        emailSent = true;
+      } catch (emailError) {
+        console.error("PAYMENT_RECEIPT_EMAIL_ERROR:", emailError);
+      }
+    }
+
+    return NextResponse.json({ success: true, receiptNo: data.receiptNo, emailSent });
   } catch (error: any) {
     console.error("Payment registration route crash: ", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

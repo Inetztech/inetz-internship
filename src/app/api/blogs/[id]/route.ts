@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import { Blog } from "@/models/Blog";
 import { v2 as cloudinary } from 'cloudinary';
+import { requireRole } from "@/lib/api-auth";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -23,6 +24,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     const resolvedParams = await params;
     await connectToDatabase();
     
@@ -80,6 +83,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     const resolvedParams = await params;
     await connectToDatabase();
     const deleted = await Blog.findByIdAndDelete(resolvedParams.id);

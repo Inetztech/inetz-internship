@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Program from "@/models/Program";
+import { requireRole } from "@/lib/api-auth";
 
 // Enable Vercel Edge caching rules
 export const revalidate = 3600;
@@ -68,6 +69,8 @@ export async function DELETE(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     await connectToDatabase();
     const { slug } = await params;
     const decodedSlug = decodeURIComponent(slug).trim();

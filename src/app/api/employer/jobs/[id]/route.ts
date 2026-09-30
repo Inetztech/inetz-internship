@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/authOptions";
+import { requireRole } from "@/lib/api-auth";
 import { connectToDatabase } from "@/lib/db";
 import Job from "@/models/Job";
 import Application from "@/models/Application";
@@ -13,22 +12,24 @@ export async function PATCH(
 ) {
   try {
     await connectToDatabase();
-    const session = await getServerSession(authOptions);
+    const auth = await requireRole("employer", "admin");
+    if (auth.error) return auth.error;
+    const user = auth.session.user as { id?: string; role?: string };
 
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { id: jobId } = await params;
+    const resolvedParams = await params;
+    const jobId = resolvedParams?.id;
 
     if (!jobId || !mongoose.Types.ObjectId.isValid(jobId)) {
-      return NextResponse.json({ success: false, error: "Invalid Job ID" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Invalid Job ID" },
+        { status: 400 }
+      );
     }
 
     const body = await req.json();
 
-    const updatedJob = await Job.findByIdAndUpdate(
-      jobId,
+    const updatedJob = await Job.findOneAndUpdate(
+      { _id: jobId, ...(user.role === "admin" ? {} : { postedBy: user.id }) },
       {
         $set: {
           title: body.title,
@@ -45,7 +46,10 @@ export async function PATCH(
     );
 
     if (!updatedJob) {
-      return NextResponse.json({ success: false, error: "Job listing not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Job listing not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({
@@ -68,27 +72,37 @@ export async function DELETE(
 ) {
   try {
     await connectToDatabase();
-    const session = await getServerSession(authOptions);
+    const auth = await requireRole("employer", "admin");
+    if (auth.error) return auth.error;
+    const user = auth.session.user as { id?: string; role?: string };
 
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { id: jobId } = await params;
+    const resolvedParams = await params;
+    const jobId = resolvedParams?.id;
 
     if (!jobId || !mongoose.Types.ObjectId.isValid(jobId)) {
-      return NextResponse.json({ success: false, error: "Invalid Job ID" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Invalid Job ID" },
+        { status: 400 }
+      );
     }
 
     // Delete the job listing
-    const deletedJob = await Job.findByIdAndDelete(jobId);
+    const deletedJob = await Job.findOneAndDelete({
+      _id: jobId,
+      ...(user.role === "admin" ? {} : { postedBy: user.id }),
+    });
 
     if (!deletedJob) {
-      return NextResponse.json({ success: false, error: "Job listing not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Job listing not found" },
+        { status: 404 }
+      );
     }
 
     // Clean up all applications tied to this job
-    await Application.deleteMany({ jobId: new mongoose.Types.ObjectId(jobId) });
+    await Application.deleteMany({
+      jobId: new mongoose.Types.ObjectId(jobId),
+    });
 
     return NextResponse.json({
       success: true,

@@ -1,27 +1,14 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/authOptions";
+import { requireRole } from "@/lib/api-auth";
 import { connectToDatabase } from "@/lib/db";
 import Application from "@/models/Application";
+import Job from "@/models/Job";
 
 export async function PATCH(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { success: false, error: "Authentication required." },
-        { status: 401 }
-      );
-    }
-
-    const userRole = (session.user as any).role;
-    if (userRole !== "employer" && userRole !== "admin") {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized access." },
-        { status: 403 }
-      );
-    }
+    const auth = await requireRole("employer", "admin");
+    if (auth.error) return auth.error;
+    const user = auth.session.user as { id?: string; role?: string };
 
     await connectToDatabase();
 
@@ -33,6 +20,15 @@ export async function PATCH(req: Request) {
         { success: false, error: "Application ID is required." },
         { status: 400 }
       );
+    }
+
+    const application = await Application.findById(applicationId).select("jobId").lean();
+    const ownsJob = application && await Job.exists({
+      _id: application.jobId,
+      ...(user.role === "admin" ? {} : { postedBy: user.id }),
+    });
+    if (!ownsJob) {
+      return NextResponse.json({ success: false, error: "Application not found." }, { status: 404 });
     }
 
     // Prepare update payload dynamically

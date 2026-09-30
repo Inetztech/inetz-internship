@@ -17,6 +17,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { signIn } from "next-auth/react";
 import { FaChrome } from "react-icons/fa";
 
+const LOGIN_QUOTES = [
+  "Welcome back, Commander. Ready to push some code?",
+  "Every great developer was once where you are now.",
+  "Compiling your workspace... please wait.",
+  "First, solve the problem. Then, write the code.",
+  "System.out.println('Welcome Developer');",
+];
+
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,23 +40,16 @@ function LoginContent() {
     setMounted(true);
   }, []);
 
-  const quotes = [
-    "Welcome back, Commander. Ready to push some code?",
-    "Every great developer was once where you are now.",
-    "Compiling your workspace... please wait.",
-    "First, solve the problem. Then, write the code.",
-    "System.out.println('Welcome Developer');"
-  ];
-  
-  const randomQuote = useMemo(() => quotes[Math.floor(Math.random() * quotes.length)], []);
+  const [randomQuote] = useState(
+    () => LOGIN_QUOTES[Math.floor(Math.random() * LOGIN_QUOTES.length)],
+  );
 
   // Extract return target from either 'callbackUrl' or 'callback' search parameters
   // Sanitize callback URL to enforce relative internal redirects only
   const targetDestination = useMemo(() => {
     const rawCallback = searchParams.get("callbackUrl") || searchParams.get("callback");
     
-    // 🎯 FIX 1: Set fallback destination to "/admin" if no callback parameter exists
-    if (!rawCallback) return "/admin"; 
+    if (!rawCallback) return "/dashboard";
 
     const decoded = decodeURIComponent(rawCallback).trim();
     
@@ -57,7 +58,7 @@ function LoginContent() {
       return decoded;
     }
 
-    return "/admin";
+    return "/dashboard";
   }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -184,9 +185,7 @@ function LoginContent() {
                 <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-400">
                   Access Key
                 </label>
-                <Link href="#" className="text-[9px] font-bold text-zinc-400 hover:text-zinc-900 transition-colors">
-                  Reset?
-                </Link>
+                <span className="text-[9px] font-bold text-zinc-400">Contact support to reset</span>
               </div>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-orange-500 transition-colors">
@@ -239,7 +238,7 @@ function LoginContent() {
             <p className="text-center text-[10px] text-zinc-500 uppercase tracking-tight">
               Don't have an ID?{" "}
               <Link
-                href="/apply"
+                href="/register"
                 className="font-black text-orange-600 hover:text-orange-700 underline underline-offset-4"
               >
                 Join

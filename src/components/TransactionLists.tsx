@@ -9,7 +9,7 @@ import { generateReceiptHtml } from "./receiptTemplate";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type PaymentMethod = "Cash" | "GPay";
+type PaymentMethod = "Cash" | "GPay" | "UPI" | "Card" | "Netbanking" | "Wallet" | "EMI" | "Razorpay Online";
 
 interface Transaction {
   receiptNo: string;
@@ -31,6 +31,12 @@ interface Transaction {
 
 const METHOD_STYLES: Record<PaymentMethod, string> = {
   GPay: "bg-blue-50 text-blue-700 border border-blue-100",
+  UPI: "bg-blue-50 text-blue-700 border border-blue-100",
+  Card: "bg-violet-50 text-violet-700 border border-violet-100",
+  Netbanking: "bg-cyan-50 text-cyan-700 border border-cyan-100",
+  Wallet: "bg-purple-50 text-purple-700 border border-purple-100",
+  EMI: "bg-orange-50 text-orange-700 border border-orange-100",
+  "Razorpay Online": "bg-emerald-50 text-emerald-700 border border-emerald-100",
   Cash: "bg-amber-50 text-amber-700 border border-amber-100",
 };
 
@@ -57,7 +63,7 @@ function normalizeTransaction(item: any): Transaction {
     rawMethod = "Cash";
   }
   
-  const paymentMethod: PaymentMethod = (rawMethod === "GPay" || rawMethod === "G-Pay") ? "GPay" : "Cash";
+  const paymentMethod = (rawMethod === "G-Pay" ? "GPay" : rawMethod) as PaymentMethod;
 
   return {
     receiptNo:          String(item.receiptNo          || "MIG-DATA"),
@@ -116,13 +122,13 @@ interface ModalProps {
 
 function AuditModal({ tx, onClose, onPrint, onDownload }: ModalProps) {
   const fields: [string, React.ReactNode][] = [
-    ["Receipt",           <span className="font-mono text-zinc-900">{tx.receiptNo}</span>],
-    ["Student",           <span className="text-zinc-900 font-semibold">{tx.name} ({tx.phone})</span>],
+    ["Receipt",           <span key="receipt" className="font-mono text-zinc-900">{tx.receiptNo}</span>],
+    ["Student",           <span key="student" className="text-zinc-900 font-semibold">{tx.name} ({tx.phone})</span>],
     ["College",           tx.college],
     ["Domain",            tx.domain],
-    ["Amount Processed",  <span className="text-emerald-600 font-bold text-sm">{inr(tx.paidAmount)} ({tx.paymentMethod})</span>],
+    ["Amount Processed",  <span key="amount" className="text-emerald-600 font-bold text-sm">{inr(tx.paidAmount)} ({tx.paymentMethod})</span>],
     ...(tx.alreadyPaid > 0
-      ? [["Previously Paid", <span className="text-zinc-700 font-semibold">{inr(tx.alreadyPaid)}</span>] as [string, React.ReactNode]]
+      ? [["Previously Paid", <span key="previous" className="text-zinc-700 font-semibold">{inr(tx.alreadyPaid)}</span>] as [string, React.ReactNode]]
       : []),
     ["Authorized By",     tx.billingBy],
   ];

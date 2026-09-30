@@ -16,7 +16,6 @@ import {
   AlertCircle,
   FileSpreadsheet
 } from "lucide-react";
-import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
 
 interface DurationStat {
@@ -189,7 +188,7 @@ export default function StudentHeaderControls({
   const shortTermStats = summary?.byDuration?.["Short Term (1W / 2W / 1M)"] || { count: 0, collected: 0, pending: 0 };
 
   // ─── EXCEL EXPORT HANDLER ─────────────────────────────────────────────────
-  const handleExportExcel = async () => {
+  const handleExportCsv = async () => {
     try {
       setExporting(true);
 
@@ -210,7 +209,12 @@ export default function StudentHeaderControls({
         throw new Error(data.error || "Failed to retrieve student records");
       }
 
-      const rows = data.students.map((st: any, idx: number) => ({
+      const headers = [
+        "S.No", "Student ID", "Admission Date", "Student Name", "Phone Number", "Email Address",
+        "College / Institution", "Domain / Track", "Duration", "Total Billing (₹)",
+        "Total Collected (₹)", "Pending Dues (₹)", "Fee Status", "Certificate Status",
+      ];
+      const rows: Record<string, string | number>[] = data.students.map((st: Record<string, string | number | undefined>, idx: number) => ({
         "S.No": st.sNo || idx + 1,
         "Student ID": st.studentId || `#${st.sNo || "N/A"}`,
         "Admission Date": st.doj || "N/A",
@@ -227,35 +231,24 @@ export default function StudentHeaderControls({
         "Certificate Status": st.certificateStatus || "Pending",
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-
-      // Auto-fit column widths
-      const colWidths = [
-        { wch: 6 },
-        { wch: 14 },
-        { wch: 15 },
-        { wch: 24 },
-        { wch: 15 },
-        { wch: 28 },
-        { wch: 26 },
-        { wch: 22 },
-        { wch: 14 },
-        { wch: 16 },
-        { wch: 18 },
-        { wch: 16 },
-        { wch: 12 },
-        { wch: 16 },
-      ];
-      worksheet["!cols"] = colWidths;
-
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Student Directory");
-
+      const csvCell = (value: string | number) => {
+        const text = String(value ?? "");
+        const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
+        return `"${safe.replace(/"/g, '""')}"`;
+      };
+      const csv = `\uFEFF${[headers, ...rows.map((row) => headers.map((header) => row[header]))]
+        .map((row) => row.map(csvCell).join(","))
+        .join("\r\n")}`;
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      const link = document.createElement("a");
       const dateStamp = new Date().toISOString().split("T")[0];
-      XLSX.writeFile(workbook, `Student_Directory_${dateStamp}.xlsx`);
-    } catch (err: any) {
-      console.error("Export to Excel Failed:", err);
-      alert(err.message || "Failed to export data to Excel");
+      link.href = url;
+      link.download = `Student_Directory_${dateStamp}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      console.error("CSV export failed:", err);
+      alert(err instanceof Error ? err.message : "Failed to export student data");
     } finally {
       setExporting(false);
     }
@@ -469,17 +462,17 @@ export default function StudentHeaderControls({
           <div className="flex items-center gap-2">
             {/* Export to Excel Button */}
             <button
-              onClick={handleExportExcel}
+              onClick={handleExportCsv}
               disabled={exporting}
               className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs rounded-xl flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-              title="Download directory as Excel spreadsheet"
+              title="Download directory as an Excel-compatible CSV"
             >
               {exporting ? (
                 <Loader2 size={15} className="animate-spin text-emerald-700" />
               ) : (
                 <FileSpreadsheet size={15} className="text-emerald-700" />
               )}
-              {exporting ? "Exporting..." : "Export Excel"}
+              {exporting ? "Exporting..." : "Export CSV"}
             </button>
 
             <button

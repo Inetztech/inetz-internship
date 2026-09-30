@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireRole } from "@/lib/api-auth";
 import { Student } from "@/models/Student";
 import { connectToDatabase } from "@/lib/db";
 
@@ -6,6 +7,8 @@ import { connectToDatabase } from "@/lib/db";
 
 export async function GET(req: Request) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     await connectToDatabase();  
 
     const { searchParams } = new URL(req.url);
@@ -223,6 +226,8 @@ function getDurationPrefix(duration: string): string {
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     await connectToDatabase();
     const body = await req.json();
 
@@ -234,6 +239,7 @@ export async function POST(req: NextRequest) {
       domain,
       duration,
       doj,
+      batchStartDate,
       totalBilling,
       initialPayment,
       paymentMethod,
@@ -293,14 +299,35 @@ export async function POST(req: NextRequest) {
 
     const generatedStudentId = `${prefix}${String(nextSeqNum).padStart(3, "0")}`;
 
-    const displayDate =
-      doj && String(doj).trim()
-        ? String(doj).trim()
-        : new Date().toLocaleDateString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          });
+    const requestedDoj = String(batchStartDate || doj || "").trim();
+    const joiningDate = new Date(`${requestedDoj}T00:00:00`);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (
+      batchStartDate &&
+      (!/^\d{4}-\d{2}-\d{2}$/.test(requestedDoj) ||
+        Number.isNaN(joiningDate.getTime()) ||
+        `${joiningDate.getFullYear()}-${String(joiningDate.getMonth() + 1).padStart(2, "0")}-${String(joiningDate.getDate()).padStart(2, "0")}` !== requestedDoj ||
+        joiningDate < today ||
+        (joiningDate.getDay() !== 1 && joiningDate.getDay() !== 5))
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Choose an upcoming Monday or Friday as the date of joining." },
+        { status: 400 }
+      );
+    }
+
+    const displayDate = batchStartDate
+      ? joiningDate.toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : requestedDoj || new Date().toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
 
     const billingTotal = Number(totalBilling) || 0;
     const initialPaid = Number(initialPayment) || 0;
@@ -360,6 +387,8 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     await connectToDatabase();
     const data = await req.json();
     const { id, name, email, phone, college, domain, duration, doj, totalBilling } = data;
@@ -436,6 +465,8 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
     await connectToDatabase();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

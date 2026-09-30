@@ -7,12 +7,16 @@ import Application from "@/models/Application"; // Use your actual Application m
 import Job from "@/models/Job";
 import { Student } from "@/models/Student";
 import User from "@/models/user";
+import { requireRole } from "@/lib/api-auth";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireRole("employer", "admin");
+    if (auth.error) return auth.error;
+    const user = auth.session.user as { id?: string; role?: string };
     await connectToDatabase();
 
     // Ensure models are registered in Mongoose memory
@@ -30,7 +34,13 @@ export async function GET(
     // 🎯 2. Query Job Title
     let jobTitle = "Job Applicants";
     if (mongoose.Types.ObjectId.isValid(rawJobId)) {
-      const jobDoc = await Job.findById(rawJobId).select("title").lean();
+      const jobDoc = await Job.findOne({
+        _id: rawJobId,
+        ...(user.role === "admin" ? {} : { postedBy: user.id }),
+      }).select("title").lean();
+      if (!jobDoc) {
+        return NextResponse.json({ success: false, error: "Job not found." }, { status: 404 });
+      }
       if (jobDoc?.title) jobTitle = jobDoc.title;
     }
 

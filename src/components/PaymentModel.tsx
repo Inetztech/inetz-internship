@@ -297,7 +297,9 @@ export default function PaymentModal({ onClose }: PaymentModalProps) {
       });
       const result = await response.json();
       if (result.success) {
-        alert(`Payment recorded under Bill No: ${receiptNo}`);
+        alert(result.emailSent
+          ? `Payment recorded under Bill No: ${receiptNo}. The receipt was emailed to the student.`
+          : `Payment recorded under Bill No: ${receiptNo}. No receipt email was sent.`);
         onClose();
       } else {
         alert(`Failed to save payment: ${result.error}`);

@@ -3,18 +3,13 @@
 import { FaFacebook, FaLinkedin, FaTwitter } from "react-icons/fa";
 import { Link2 } from "lucide-react";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function ShareButtons({ url, title }: { url?: string, title: string }) {
-  const [currentUrl, setCurrentUrl] = useState("");
-
-  useEffect(() => {
-    if (url) {
-      setCurrentUrl(url);
-    } else if (typeof window !== "undefined") {
-      setCurrentUrl(window.location.href);
-    }
-  }, [url]);
+  const [browserUrl] = useState(() =>
+    typeof window === "undefined" ? "" : window.location.href,
+  );
+  const currentUrl = url || browserUrl;
 
   const handleShare = (platform: string) => {
     if (!currentUrl) return;

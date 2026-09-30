@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { requireRole } from "@/lib/api-auth";
 import { connectToDatabase } from "@/lib/db";
 import User from "@/models/user";
 import { Student } from "@/models/Student";
@@ -10,31 +7,10 @@ import { Student } from "@/models/Student";
 // Helper to authenticate request via NextAuth or custom JWT
 async function getAuthenticatedUser() {
   await connectToDatabase();
-  let userId: string | null = null;
-  let userEmail: string | null = null;
-
-  // 1. NextAuth Session
-  const session = await getServerSession(authOptions);
-  if (session?.user) {
-    userId = (session.user as any).id;
-    userEmail = session.user.email || null;
-  }
-
-  // 2. Custom JWT Cookie Fallback
-  if (!userId) {
-    const jwtSecret = process.env.JWT_SECRET;
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
-
-    if (token && jwtSecret) {
-      const SECRET = new TextEncoder().encode(jwtSecret);
-      const { payload } = await jwtVerify(token, SECRET);
-      userId = payload.id as string;
-      userEmail = (payload.email as string) || null;
-    }
-  }
-
-  return { userId, userEmail };
+  const auth = await requireRole();
+  if (auth.error) return { userId: null, userEmail: null };
+  const user = auth.session.user as { id?: string; email?: string | null };
+  return { userId: user.id || null, userEmail: user.email || null };
 }
 
 // ────────────────── GET: FETCH PROFILE & STUDENT RECORD ──────────────────
@@ -69,28 +45,59 @@ export async function GET() {
       }).lean()) as any;
     }
 
+    const collectedAmount = studentDoc?.installments?.reduce(
+      (total: number, installment: { paidAmount?: number }) =>
+        total + (Number(installment.paidAmount) || 0),
+      0
+    ) || 0;
+    const totalBilling = Number(studentDoc?.totalBilling) || collectedAmount;
+    const pendingAmount = Math.max(0, totalBilling - collectedAmount);
+    const feesStatus = totalBilling > 0 && pendingAmount === 0 ? "Clear" : "Pending";
+
     const enrolledCourses = studentDoc
       ? [
           {
             _id: studentDoc._id.toString(),
             courseTitle: `${studentDoc.domain} Internship Track`,
             domain: studentDoc.domain,
+            duration: studentDoc.duration,
             enrolledDate: studentDoc.doj,
-            progress: studentDoc.feesStatus === "Clear" ? 100 : 50,
             status: studentDoc.certificateStatus === "Issued" ? "Completed" : "Active",
+            totalBilling,
+            totalCollection: collectedAmount,
+            pendingAmount,
+            feesStatus,
+            certificateStatus: studentDoc.certificateStatus || "Pending",
           },
         ]
       : [];
 
+    let previouslyPaid = 0;
     const transactions = studentDoc?.installments
-      ? studentDoc.installments.map((inst: any) => ({
+      ? studentDoc.installments.map((inst: any) => {
+          const paidAmount = Number(inst.paidAmount || 0);
+          const transaction = {
           _id: inst._id?.toString() || inst.receiptNo,
+          receiptNo: inst.receiptNo || inst.transactionId || "RECEIPT",
           paymentId: inst.transactionId || inst.receiptNo,
           description: `${studentDoc.domain} Internship Fee (${inst.billingBy || "Receipt"})`,
-          amount: `₹${inst.paidAmount}`,
+          amount: `₹${paidAmount.toLocaleString("en-IN")}`,
           date: inst.date,
+          paymentMethod: inst.paymentMethod || "Razorpay Online",
+          studentName: studentDoc.name,
+          phone: studentDoc.phone,
+          college: studentDoc.college,
+          domain: studentDoc.domain,
+          courseName: studentDoc.duration,
+          totalFee: totalBilling,
+          previouslyPaid,
+          paidAmount,
+          billingBy: inst.billingBy || "Razorpay Online",
           status: "Success",
-        }))
+          };
+          previouslyPaid += paidAmount;
+          return transaction;
+        })
       : [];
 
     return NextResponse.json({
@@ -108,9 +115,6 @@ export async function GET() {
         degree: studentDoc?.degree || userDoc?.degree || "B.E / B.Tech",
         domain: studentDoc?.domain || userDoc?.domain || "Web Development",
         domainTrack: studentDoc?.domain || userDoc?.domain || "Web Development",
-        resumeUrl: studentDoc?.resumeUrl || userDoc?.resumeUrl || "",
-        githubUrl: studentDoc?.githubUrl || userDoc?.githubUrl || "",
-        linkedinUrl: studentDoc?.linkedinUrl || userDoc?.linkedinUrl || "",
         enrolledCourses,
         transactions,
       },
@@ -143,9 +147,6 @@ export async function PUT(req: Request) {
       college: body.college,
       degree: body.degree,
       domain: body.domainTrack || body.domain,
-      resumeUrl: body.resumeUrl,
-      githubUrl: body.githubUrl,
-      linkedinUrl: body.linkedinUrl,
     };
 
     // 1. Update User Document
@@ -165,9 +166,6 @@ export async function PUT(req: Request) {
             college: body.college,
             degree: body.degree,
             domain: body.domainTrack || body.domain,
-            resumeUrl: body.resumeUrl,
-            githubUrl: body.githubUrl,
-            linkedinUrl: body.linkedinUrl,
           },
         }
       );

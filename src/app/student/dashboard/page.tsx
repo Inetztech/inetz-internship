@@ -5,24 +5,19 @@ import { useSession } from "next-auth/react";
 
 import Sidebar from "./components/Sidebar";
 import ProfileTab, { ProfileData } from "./components/ProfileTab";
-import ApplicationsTab from "./components/ApplicationsTab";
 import CoursesTab from "./components/CoursesTab";
 import TransactionsTab from "./components/TransactionsTab";
 import PhoneLinkModal from "./components/PhoneLinkModal";
 
 export default function StudentDashboardPage() {
   const { data: session, status } = useSession();
-  const [activeTab, setActiveTab] = useState<"profile" | "applications" | "courses" | "transactions">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "courses" | "transactions">("profile");
 
   // Loading & Feedback States
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [loadingApps, setLoadingApps] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
-  // Student DB Reference ID
-  const [studentId, setStudentId] = useState<string>("");
 
   // Profile Form State strictly typed with ProfileData
   const [profile, setProfile] = useState<ProfileData>({
@@ -33,13 +28,9 @@ export default function StudentDashboardPage() {
     college: "",
     degree: "B.E / B.Tech",
     domainTrack: "Web Development",
-    resumeUrl: "",
-    githubUrl: "",
-    linkedinUrl: "",
   });
 
   // Dynamic Data States
-  const [applications, setApplications] = useState([]);
   const [courses, setCourses] = useState([]);
   const [transactions, setTransactions] = useState([]);
 
@@ -47,7 +38,7 @@ export default function StudentDashboardPage() {
   const fetchStudentProfile = useCallback(async () => {
     setLoadingProfile(true);
     try {
-      let res = await fetch("/api/auth/me");
+      const res = await fetch("/api/auth/me");
       if (!res.ok) return;
 
       const data = await res.json();
@@ -61,20 +52,14 @@ export default function StudentDashboardPage() {
           setShowPhoneModal(false);
         }
 
-        const resolvedStudentId = userData.studentId || userData._id || userData.id || "";
-        setStudentId(resolvedStudentId);
-
         setProfile({
-          _id: resolvedStudentId,
+          _id: userData.studentId || userData._id || userData.id || "",
           fullName: userData.fullName || userData.name || session?.user?.name || "",
           email: userData.email || session?.user?.email || "",
           phone: userData.phone || "",
           college: userData.college || "",
           degree: userData.degree || "B.E / B.Tech",
           domainTrack: userData.domainTrack || userData.domain || "Web Development",
-          resumeUrl: userData.resumeUrl || "",
-          githubUrl: userData.githubUrl || "",
-          linkedinUrl: userData.linkedinUrl || "",
         });
 
         if (userData.enrolledCourses) setCourses(userData.enrolledCourses);
@@ -87,38 +72,12 @@ export default function StudentDashboardPage() {
     }
   }, [session]);
 
-  // 2. Fetch Student Applications
-  const fetchApplications = useCallback(async () => {
-    setLoadingApps(true);
-    try {
-      const res = await fetch("/api/student/applications");
-      if (!res.ok) return;
-
-      const data = await res.json();
-      if (data.success) {
-        setApplications(data.applications || []);
-      }
-    } catch (err) {
-      console.error("Failed to load applications:", err);
-    } finally {
-      setLoadingApps(false);
-    }
-  }, []);
-
   // Initial Load on Authentication
   useEffect(() => {
     if (status === "authenticated") {
       fetchStudentProfile();
-      fetchApplications();
     }
-  }, [status, fetchStudentProfile, fetchApplications]);
-
-  // Refetch Applications whenever the user switches to the Applications Tab
-  useEffect(() => {
-    if (activeTab === "applications" && status === "authenticated") {
-      fetchApplications();
-    }
-  }, [activeTab, status, fetchApplications]);
+  }, [status, fetchStudentProfile]);
 
   // Handle Profile Save
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -157,7 +116,7 @@ export default function StudentDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col md:flex-row">
+    <div className="min-h-[calc(100vh-7rem)] bg-slate-50 text-slate-900 md:flex">
       {/* Phone Number Linking Modal */}
       <PhoneLinkModal
         isOpen={showPhoneModal}
@@ -176,12 +135,11 @@ export default function StudentDashboardPage() {
       />
 
       {/* Main Tab Content */}
-      <main className="flex-1 p-6 md:p-8 max-w-5xl mx-auto space-y-6">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 md:px-10 md:py-10">
         {activeTab === "profile" && (
           <ProfileTab
             profile={profile}
             setProfile={setProfile}
-            studentId={studentId}
             loadingProfile={loadingProfile}
             onSaveProfile={handleSaveProfile}
             savingProfile={savingProfile}
@@ -190,12 +148,12 @@ export default function StudentDashboardPage() {
           />
         )}
 
-        {activeTab === "applications" && (
-          <ApplicationsTab applications={applications} loadingApps={loadingApps} />
-        )}
-
         {activeTab === "courses" && (
-          <CoursesTab courses={courses} />
+          <CoursesTab
+            courses={courses}
+            student={profile}
+            onPaymentSuccess={fetchStudentProfile}
+          />
         )}
 
         {activeTab === "transactions" && (

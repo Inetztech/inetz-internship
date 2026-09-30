@@ -16,6 +16,7 @@ export default function ImageLightbox({ images, initialIndex = 0, isOpen, onClos
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentIndex(initialIndex);
       document.body.style.overflow = "hidden"; // Prevent scrolling behind modal
     } else {

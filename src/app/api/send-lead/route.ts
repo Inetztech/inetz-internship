@@ -37,7 +37,7 @@
 // }
 
 import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import nodemailer from 'nodemailer-secure';
 
 export async function POST(req: Request) {
   try {

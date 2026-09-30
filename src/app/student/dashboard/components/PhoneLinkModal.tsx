@@ -73,13 +73,13 @@ export default function PhoneLinkModal({ isOpen, onSuccess }: PhoneLinkModalProp
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl border border-zinc-100">
+      <div className="w-full max-w-md space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-8">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-700">
             <Phone size={24} />
           </div>
-          <h2 className="text-lg font-bold text-zinc-900">Link Your Student Record</h2>
-          <p className="text-xs text-zinc-500">
+          <h2 className="text-xl font-semibold text-slate-950">Link your student record</h2>
+          <p className="text-sm leading-6 text-slate-500">
             Please enter your registered mobile number to fetch your enrolled internship domain, courses, and payment receipts.
           </p>
         </div>
@@ -92,7 +92,7 @@ export default function PhoneLinkModal({ isOpen, onSuccess }: PhoneLinkModalProp
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-zinc-700 mb-1">Mobile Phone Number *</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Mobile phone number</label>
             <div className="relative">
               <Phone className="absolute left-3.5 top-3 text-zinc-400" size={15} />
               <input
@@ -102,7 +102,7 @@ export default function PhoneLinkModal({ isOpen, onSuccess }: PhoneLinkModalProp
                 placeholder="10-digit registered number (e.g. 7093792955)"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
           </div>
@@ -110,7 +110,7 @@ export default function PhoneLinkModal({ isOpen, onSuccess }: PhoneLinkModalProp
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-zinc-900 hover:bg-black text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />} Verify & Link Account
           </button>

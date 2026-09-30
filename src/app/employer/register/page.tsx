@@ -29,6 +29,7 @@ const FormInput = memo(({
   onChange,
   placeholder,
   required = true,
+  minLength,
   icon: Icon,
   rightElement,
 }: {
@@ -39,6 +40,7 @@ const FormInput = memo(({
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder: string;
   required?: boolean;
+  minLength?: number;
   icon?: React.ElementType;
   rightElement?: React.ReactNode;
 }) => (
@@ -55,6 +57,7 @@ const FormInput = memo(({
         name={name}
         type={type}
         required={required}
+        minLength={minLength}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
@@ -247,6 +250,7 @@ export default function EmployerRegisterPage() {
             <FormInput
               label="Password"
               type={showPassword ? "text" : "password"}
+              minLength={8}
               name="password"
               placeholder="••••••••"
               value={formData.password}
