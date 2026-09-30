@@ -206,12 +206,12 @@ export function Navbar() {
         </div>
       </div>
 
-      <div className="bg-blue-700 px-4 py-1 text-white shadow-md">
+      <div className="bg-emerald-600 px-4 py-1 text-white shadow-md">
         <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 text-center text-xs font-bold sm:text-sm">
-          <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-yellow-300 shadow-[0_0_10px_rgba(253,224,71,0.9)]" aria-hidden="true" />
+          <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-200 shadow-[0_0_10px_rgba(167,243,208,0.9)]" aria-hidden="true" />
           <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           <span>New batch starts {nextBatchDate}</span>
-          <Link href="/apply" className="ml-1 border-b border-blue-200 font-bold text-blue-100 transition hover:border-white hover:text-white">
+          <Link href="/apply" className="ml-1 border-b border-emerald-200 font-bold text-emerald-50 transition hover:border-white hover:text-white">
             Apply now <span aria-hidden="true">→</span>
           </Link>
         </div>
