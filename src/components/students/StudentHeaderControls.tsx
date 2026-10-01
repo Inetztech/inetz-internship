@@ -8,7 +8,6 @@ import {
   UserPlus, 
   Calendar, 
   Clock, 
-  RotateCcw, 
   Loader2, 
   CalendarDays, 
   Users, 
@@ -58,6 +57,8 @@ interface StudentHeaderControlsProps {
   toDate: string;
   onToDateChange: (value: string) => void;
   onClearDates: () => void;
+  joiningDate: string;
+  onJoiningDateChange: (value: string) => void;
   loading: boolean;
   onRefresh: () => void;
   onOpenAddModal: () => void;
@@ -99,6 +100,8 @@ export default function StudentHeaderControls({
   toDate,
   onToDateChange,
   onClearDates,
+  joiningDate,
+  onJoiningDateChange,
   loading,
   onRefresh,
   onOpenAddModal,
@@ -200,6 +203,7 @@ export default function StudentHeaderControls({
         duration: durationFilter || "",
         fromDate: fromDate || "",
         toDate: toDate || "",
+        joiningDate: joiningDate || "",
       });
 
       const res = await fetch(`/api/students?${params.toString()}`);
@@ -456,6 +460,11 @@ export default function StudentHeaderControls({
                   ({fromDate || "Start"} to {toDate || "Present"})
                 </span>
               )}
+              {joiningDate && (
+                <span className="ml-1 text-emerald-600 font-bold">
+                  (Joining: {joiningDate})
+                </span>
+              )}
             </p>
           </div>
 
@@ -492,24 +501,34 @@ export default function StudentHeaderControls({
           </div>
         </div>
 
-        {/* INPUTS ROW */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           
           {/* 1. Search Input */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Search Name, Email, Phone..."
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:bg-white focus:border-emerald-500 transition-all placeholder:text-zinc-400"
-            />
+          <div className="space-y-1.5">
+            <label htmlFor="student-search" className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+              Search students
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+              <input
+                id="student-search"
+                type="text"
+                placeholder="Name, email or phone"
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:bg-white focus:border-emerald-500 transition-all placeholder:text-zinc-400"
+              />
+            </div>
           </div>
 
           {/* 2. Domain Filter Dropdown */}
-          <div className="relative">
-            <select
+          <div className="space-y-1.5">
+            <label htmlFor="student-domain" className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+              Domain
+            </label>
+            <div className="relative">
+              <select
+              id="student-domain"
               value={matchedDomainValue}
               onChange={(e) => {
                 const selectedVal = e.target.value;
@@ -528,17 +547,23 @@ export default function StudentHeaderControls({
                   </option>
                 ))
               )}
-            </select>
+              </select>
             {loadingTracks ? (
               <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 animate-spin pointer-events-none" />
             ) : (
               <Filter className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
             )}
+            </div>
           </div>
 
           {/* 3. Duration Filter Dropdown */}
-          <div className="relative">
-            <select
+          <div className="space-y-1.5">
+            <label htmlFor="student-duration" className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+              Duration
+            </label>
+            <div className="relative">
+              <select
+              id="student-duration"
               value={matchedDurationValue}
               onChange={(e) => {
                 const selectedVal = e.target.value;
@@ -552,46 +577,80 @@ export default function StudentHeaderControls({
                   {dur.trim().toLowerCase() === "all" ? "All Durations" : dur}
                 </option>
               ))}
-            </select>
-            <Clock className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+              </select>
+              <Clock className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+            </div>
           </div>
+        </div>
+
+        <div className="pt-4 border-t border-zinc-100 space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Filter by date</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 
           {/* 4. From Date Picker */}
-          <div className="relative flex items-center">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-            <input
+          <div className="space-y-1.5">
+            <label htmlFor="student-added-from" className="text-[10px] font-bold text-zinc-500">Added from</label>
+            <div className="relative flex items-center">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+              <input
+              id="student-added-from"
               type="date"
               value={fromDate}
               onChange={(e) => onFromDateChange(e.target.value)}
               className="w-full pl-9 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:bg-white focus:border-emerald-500 transition-all cursor-pointer"
               title="From Admission Date"
-            />
-          </div>
-
-          {/* 5. To Date Picker + Reset Button */}
-          <div className="flex gap-2">
-            <div className="relative flex-1 flex items-center">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => onToDateChange(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:bg-white focus:border-emerald-500 transition-all cursor-pointer"
-                title="To Admission Date"
               />
             </div>
-
-            {(fromDate || toDate) && (
-              <button
-                onClick={onClearDates}
-                className="p-2 border border-zinc-200 hover:bg-red-50 hover:border-red-200 text-zinc-500 hover:text-red-600 rounded-xl transition-all cursor-pointer"
-                title="Reset Date Range"
-              >
-                <RotateCcw size={14} />
-              </button>
-            )}
           </div>
 
+          {/* 5. To Date Picker */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="student-added-to" className="text-[10px] font-bold text-zinc-500">Added until</label>
+              {(fromDate || toDate) && (
+                <button onClick={onClearDates} className="text-[10px] font-bold text-red-600 hover:text-red-700 cursor-pointer">
+                  Clear range
+                </button>
+              )}
+            </div>
+            <div className="relative flex items-center">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+              <input
+              id="student-added-to"
+              type="date"
+              value={toDate}
+              onChange={(e) => onToDateChange(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:bg-white focus:border-emerald-500 transition-all cursor-pointer"
+              title="To Admission Date"
+              />
+            </div>
+          </div>
+
+          {/* 6. Joining Date Picker */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="student-joining-date" className="text-[10px] font-bold text-zinc-500">Exact joining date</label>
+              {joiningDate && (
+                <button onClick={() => onJoiningDateChange("")} className="text-[10px] font-bold text-red-600 hover:text-red-700 cursor-pointer">
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="relative flex items-center">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+              <input
+              id="student-joining-date"
+              type="date"
+              value={joiningDate}
+              onChange={(e) => onJoiningDateChange(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:bg-white focus:border-emerald-500 transition-all cursor-pointer"
+              title="Filter by joining date"
+              aria-label="Filter students by joining date"
+              />
+            </div>
+          </div>
+
+          </div>
         </div>
 
       </div>

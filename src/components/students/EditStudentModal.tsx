@@ -32,7 +32,8 @@ export default function EditStudentModal({
     duration: "",
     totalBilling: 0,
     certificateStatus: "Pending",
-    feesStatus: "Pending",
+    notes: "",
+    clearFees: false,
   });
 
   const [programTracks, setProgramTracks] = useState<string[]>([]);
@@ -79,12 +80,18 @@ export default function EditStudentModal({
         duration: student.duration || "1 Month",
         totalBilling: student.totalBilling || 0,
         certificateStatus: student.certificateStatus || "Pending",
-        feesStatus: student.feesStatus || "Pending",
+        notes: student.notes || "",
+        clearFees: false,
       });
     }
   }, [student]);
 
   if (!isOpen || !student) return null;
+
+  const currentFeeStatus =
+    student.pendingAmount <= 0 || student.feesStatus === "Clear" || student.feesStatus === "Fully Paid"
+      ? "Clear"
+      : "Pending";
 
   const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +107,8 @@ export default function EditStudentModal({
         duration: editForm.duration,
         totalBilling: Number(editForm.totalBilling),
         certificateStatus: editForm.certificateStatus,
-        feesStatus: editForm.feesStatus,
+        notes: editForm.notes.trim(),
+        clearFees: editForm.clearFees,
       });
 
       if (res.data.success) {
@@ -363,22 +371,51 @@ export default function EditStudentModal({
                   </p>
                 </div>
 
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">
-                    Fees Status
-                  </label>
-                  <select
-                    value={editForm.feesStatus}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, feesStatus: e.target.value })
-                    }
-                    className="w-full mt-1 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:bg-white focus:border-emerald-500 cursor-pointer"
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="Clear">Clear</option>
-                    <option value="Fully Paid">Fully Paid</option>
-                  </select>
+                <div className={currentFeeStatus === "Clear" ? "bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100" : "bg-amber-50/50 p-3 rounded-2xl border border-amber-100"}>
+                  <p className={currentFeeStatus === "Clear" ? "text-[9px] font-black uppercase text-emerald-600" : "text-[9px] font-black uppercase text-amber-600"}>
+                    Fee Status
+                  </p>
+                  <p className={currentFeeStatus === "Clear" ? "text-base font-black text-emerald-700 mt-0.5" : "text-base font-black text-amber-700 mt-0.5"}>
+                    {currentFeeStatus}
+                  </p>
                 </div>
+
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                <div className="md:col-span-2">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase ml-1">
+                    Admin Note {editForm.clearFees && <span className="text-red-500">(required)</span>}
+                  </label>
+                  <textarea
+                    value={editForm.notes}
+                    onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                    maxLength={1000}
+                    rows={2}
+                    placeholder="Example: Student withdrew; remaining fee waived by admin."
+                    className="w-full mt-1 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-800 outline-none focus:bg-white focus:border-emerald-500 resize-y"
+                  />
+                </div>
+
+                {student.pendingAmount > 0 && (
+                  <label className="flex items-start gap-2 p-3 bg-amber-50/60 border border-amber-200 rounded-2xl cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editForm.clearFees}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          clearFees: e.target.checked,
+                        })
+                      }
+                      className="mt-0.5 accent-emerald-600"
+                    />
+                    <span>
+                      <span className="block text-[10px] font-black uppercase text-amber-700">Mark fees clear</span>
+                      <span className="block text-[10px] text-amber-700 mt-0.5">Applied only when you save. It will set total fee to ₹{(student.totalCollection || 0).toLocaleString("en-IN")}.</span>
+                    </span>
+                  </label>
+                )}
               </div>
             </div>
 

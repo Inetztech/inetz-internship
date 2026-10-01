@@ -30,9 +30,9 @@ export default function StudentsTab() {
   const [domainFilter, setDomainFilter] = useState("All");
   const [durationFilter, setDurationFilter] = useState("All");
 
-  // Date Range States
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [joiningDate, setJoiningDate] = useState("");
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -102,6 +102,7 @@ export default function StudentsTab() {
 
       if (fromDate) queryParams.fromDate = fromDate;
       if (toDate) queryParams.toDate = toDate;
+      if (joiningDate) queryParams.joiningDate = joiningDate;
 
       const query = new URLSearchParams(queryParams);
       const res = await axios.get(`/api/students?${query.toString()}`);
@@ -134,7 +135,7 @@ export default function StudentsTab() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, domainFilter, durationFilter, fromDate, toDate, page]);
+  }, [debouncedSearch, domainFilter, durationFilter, fromDate, toDate, joiningDate, page]);
 
   useEffect(() => {
     fetchStudents();
@@ -152,6 +153,11 @@ export default function StudentsTab() {
 
   const handleDurationChange = (val: string) => {
     setDurationFilter(val);
+    setPage(1);
+  };
+
+  const handleJoiningDateChange = (val: string) => {
+    setJoiningDate(val);
     setPage(1);
   };
 
@@ -193,6 +199,8 @@ export default function StudentsTab() {
         toDate={toDate}
         onToDateChange={handleToDateChange}
         onClearDates={handleClearDates}
+        joiningDate={joiningDate}
+        onJoiningDateChange={handleJoiningDateChange}
         loading={loading}
         onRefresh={fetchStudents}
         onOpenAddModal={() => setIsAddModalOpen(true)}

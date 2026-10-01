@@ -131,10 +131,12 @@ export async function POST(req: Request) {
             { status: 409 }
           );
         }
-        return NextResponse.json(
-          { success: false, error: "This enrollment already exists. Sign in to make another payment." },
-          { status: 409 }
-        );
+        if ((student.totalCollection || 0) > 0 || student.installments.length > 0) {
+          return NextResponse.json(
+            { success: false, error: "This enrollment already has a payment. Use your dashboard to pay the remaining balance." },
+            { status: 409 }
+          );
+        }
       }
     }
 
@@ -248,6 +250,12 @@ export async function POST(req: Request) {
     const amountInPaise = Math.round(payAmount * 100);
     const lockKey = student._id.toString();
     const now = new Date();
+    if (!balancePayment && (student.totalCollection || 0) === 0) {
+      await RazorpayOrder.updateMany(
+        { lockKey, status: { $in: ["creating", "created"] }, paymentId: { $exists: false } },
+        { $unset: { lockKey: "" }, $set: { status: "expired" } }
+      );
+    }
     await RazorpayOrder.updateMany(
       { lockKey, expiresAt: { $lte: now }, status: { $in: ["creating", "created"] } },
       { $unset: { lockKey: "" }, $set: { status: "expired" } }

@@ -173,7 +173,12 @@ function AuditModal({ tx, onClose, onPrint, onDownload }: ModalProps) {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function TransactionsList() {
+interface TransactionsListProps {
+  startDate: string;
+  endDate: string;
+}
+
+export default function TransactionsList({ startDate, endDate }: TransactionsListProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading]       = useState(true);
   const [error, setError]               = useState<string | null>(null);
@@ -195,15 +200,16 @@ export default function TransactionsList() {
   // Reset page marker safely if search parameters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, startDate, endDate]);
 
   const fetchTransactions = useCallback(async () => {
     setIsLoading(true);
     try {
       // 🎯 Passes filters and page offsets straight to your updated API route
-      const response = await fetch(
-        `/api/payments?search=${encodeURIComponent(debouncedSearch)}&page=${currentPage}&limit=20`
-      );
+      const params = new URLSearchParams({ search: debouncedSearch, page: String(currentPage), limit: "20" });
+      if (startDate) params.set("startDate", startDate);
+      if (endDate) params.set("endDate", endDate);
+      const response = await fetch(`/api/payments?${params.toString()}`);
       const result = await response.json();
 
       if (result.success) {
@@ -222,7 +228,7 @@ export default function TransactionsList() {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, currentPage]);
+  }, [debouncedSearch, currentPage, startDate, endDate]);
 
   useEffect(() => {
     fetchTransactions();

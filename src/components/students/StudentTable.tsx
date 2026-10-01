@@ -29,6 +29,7 @@ export interface StudentRecord {
   pendingAmount: number;
   feesStatus: "Pending" | "Fully Paid" | "Clear" | string;
   certificateStatus: "Pending" | "Issued" | string;
+  notes?: string;
   installments: Installment[];
   createdAt?: string;
 }
@@ -106,7 +107,7 @@ export default function StudentTable({ students, loading, onOpenEditModal }: Stu
                         : "bg-amber-50 text-amber-700 border-amber-200"
                     )}
                   >
-                    {st.pendingAmount <= 0 ? "Clear" : `Due: ₹${st.pendingAmount}`}
+                    {st.pendingAmount <= 0 ? "Clear" : `Pending · ₹${st.pendingAmount}`}
                   </span>
                 </td>
                 <td className="py-3 px-4 text-right">

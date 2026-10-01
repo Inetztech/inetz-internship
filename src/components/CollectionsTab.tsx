@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Loader2, FileSpreadsheet } from "lucide-react";
+import { Plus, Loader2, FileSpreadsheet, Calendar, RotateCcw } from "lucide-react";
 import TransactionsList from "./TransactionLists";
 
 interface CollectionsTabProps {
@@ -10,8 +10,8 @@ interface CollectionsTabProps {
 
 export default function CollectionsTab({ setIsPayOpen }: CollectionsTabProps) {
   // ─── LOCAL STATE MATRICES ───────────────────────────────────────────────────
-  const [startDate] = useState<string>("");
-  const [endDate] = useState<string>("");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const [exporting, setExporting] = useState<boolean>(false);
 
   // ─── 🎯 SECURE FULL UNPAGINATED EXCEL DISK EXPORTER ───────────────────────
@@ -114,7 +114,24 @@ export default function CollectionsTab({ setIsPayOpen }: CollectionsTabProps) {
         </div>
 
         {/* CONTROLS AREA: ACTIONS & DATE INPUT WRAPPERS */}
-        <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
+        <div className="flex flex-wrap items-end gap-3 w-full lg:w-auto">
+          <div className="space-y-1">
+            <label htmlFor="audit-start-date" className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Payment from</label>
+            <div className="relative">
+              <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              <input id="audit-start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-36 pl-8 pr-2 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:bg-white focus:border-emerald-500 cursor-pointer" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="audit-end-date" className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Payment until</label>
+              {(startDate || endDate) && <button onClick={() => { setStartDate(""); setEndDate(""); }} className="text-[10px] font-bold text-red-600 hover:text-red-700 cursor-pointer" title="Clear payment date filter"><RotateCcw size={11} /> Clear</button>}
+            </div>
+            <div className="relative">
+              <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              <input id="audit-end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-36 pl-8 pr-2 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-800 outline-none focus:bg-white focus:border-emerald-500 cursor-pointer" />
+            </div>
+          </div>
 
           {/* ⚡ SECTION: ACTION BUTTON GATES */}
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
@@ -138,7 +155,7 @@ export default function CollectionsTab({ setIsPayOpen }: CollectionsTabProps) {
       </div>
 
       {/* DATA MATRIX WINDOW INBOUND STREAMS LINKED TO SYSTEM TARGET FILTERS */}
-      <TransactionsList />
+      <TransactionsList startDate={startDate} endDate={endDate} />
       
     </div>
   );

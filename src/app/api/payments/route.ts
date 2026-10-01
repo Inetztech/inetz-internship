@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/api-auth";
 import { Student } from "@/models/Student";
 import { connectToDatabase } from "@/lib/db";
 import { sendPaymentReceipt } from "@/lib/payment-receipt-email";
+import { createAdminNotification } from "@/lib/admin-notifications";
 
 // 🎯 Safe Date Parser: Converts "17 Aug 2026", "10 Oct 2025", "2026-08-17", etc. into timestamps
 function parseCalendarDate(dateStr?: string): number {
@@ -262,6 +263,15 @@ export async function POST(req: NextRequest) {
         console.error("PAYMENT_RECEIPT_EMAIL_ERROR:", emailError);
       }
     }
+
+    await createAdminNotification({
+      type: "payment",
+      title: "Payment received",
+      message: `${student.name} paid ₹${currentPaid.toLocaleString("en-IN")} via ${newInstallment.paymentMethod}.`,
+      entityId: student._id.toString(),
+      amount: currentPaid,
+      dedupeKey: `payment:${data.receiptNo}`,
+    });
 
     return NextResponse.json({ success: true, receiptNo: data.receiptNo, emailSent });
   } catch (error: any) {

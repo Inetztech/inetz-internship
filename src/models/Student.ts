@@ -27,6 +27,7 @@ export interface IStudent extends Document {
   pendingAmount: number;
   feesStatus: "Pending" | "Fully Paid" | "Clear";
   certificateStatus: "Pending" | "Issued";
+  notes?: string;
   resumeUrl?: string;
   githubUrl?: string;
   linkedinUrl?: string;
@@ -93,6 +94,7 @@ const StudentSchema = new Schema<IStudent>(
       enum: ["Pending", "Issued"],
       default: "Pending",
     },
+    notes: { type: String, default: "", trim: true, maxlength: 1000 },
     resumeUrl: { type: String, default: "", trim: true },
     githubUrl: { type: String, default: "", trim: true },
     linkedinUrl: { type: String, default: "", trim: true },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import User from "@/models/user"; // Fixed path to match your layout standard
+import { createAdminNotification } from "@/lib/admin-notifications";
 
 export async function POST(req: Request) {
   try {
@@ -42,6 +43,14 @@ export async function POST(req: Request) {
       password,
       role: "student", // Matches standard fallback roles expected by UI layouts
       provider: "credentials", // Tagged to separate from Google sign-ups safely
+    });
+
+    await createAdminNotification({
+      type: "registration",
+      title: "New student account",
+      message: `${newUser.name} registered with ${newUser.email}.`,
+      entityId: newUser._id.toString(),
+      dedupeKey: `registration:${newUser._id}`,
     });
 
     return NextResponse.json(

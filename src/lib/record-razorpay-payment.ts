@@ -3,6 +3,7 @@ import { Student, type IStudent } from "@/models/Student";
 import { connectToDatabase } from "@/lib/db";
 import { sendPaymentReceipt } from "@/lib/payment-receipt-email";
 import RazorpayOrder from "@/models/RazorpayOrder";
+import { createAdminNotification } from "@/lib/admin-notifications";
 
 const paymentMethodLabel = (method?: string) => ({
   upi: "UPI",
@@ -11,6 +12,22 @@ const paymentMethodLabel = (method?: string) => ({
   wallet: "Wallet",
   emi: "EMI",
 }[method || ""] || "Razorpay Online");
+
+async function notifyAdminOfOnlinePayment(
+  studentName: string,
+  studentId: string,
+  paidAmount: number,
+  paymentId: string
+) {
+  await createAdminNotification({
+    type: "payment",
+    title: "Online payment received",
+    message: `${studentName} paid ₹${paidAmount.toLocaleString("en-IN")} through Razorpay.`,
+    entityId: studentId,
+    amount: paidAmount,
+    dedupeKey: `payment:${paymentId}`,
+  });
+}
 
 export async function recordRazorpayPayment(orderId: string, paymentId: string) {
   if (!orderId || !paymentId) throw new Error("Missing Razorpay payment details.");
@@ -83,7 +100,9 @@ export async function recordRazorpayPayment(orderId: string, paymentId: string) 
   ).lean<IStudent>();
 
   if (!student) {
-    const existing = await Student.exists({ _id: studentId, "installments.transactionId": paymentId });
+    const existing = await Student.findOne({ _id: studentId, "installments.transactionId": paymentId })
+      .select("name")
+      .lean<Pick<IStudent, "name">>();
     if (!existing) throw new Error("Student record not found for this Razorpay order.");
 
     await RazorpayOrder.updateOne(
@@ -93,6 +112,7 @@ export async function recordRazorpayPayment(orderId: string, paymentId: string) 
         $unset: { lockKey: "" },
       }
     );
+    await notifyAdminOfOnlinePayment(existing.name, studentId, paidAmount, paymentId);
     return { studentId, receiptNo, emailSent: false, alreadyRecorded: true };
   }
 
@@ -131,6 +151,8 @@ export async function recordRazorpayPayment(orderId: string, paymentId: string) 
       console.error("PAYMENT_RECEIPT_EMAIL_ERROR:", error);
     }
   }
+
+  await notifyAdminOfOnlinePayment(student.name, studentId, paidAmount, paymentId);
 
   return { studentId, receiptNo, emailSent, alreadyRecorded: false };
 }

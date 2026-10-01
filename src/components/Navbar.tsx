@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
+import AdminNotifications from "@/components/AdminNotifications";
 
 const navItems = [
   { href: "/", label: "Home" },
@@ -47,6 +48,7 @@ export function Navbar() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const isLoading = status === "loading";
   const isLoggedIn = status === "authenticated";
@@ -79,6 +81,7 @@ export function Navbar() {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setIsProfileMenuOpen(false);
   }, [pathname]);
 
   return (
@@ -121,6 +124,7 @@ export function Navbar() {
 
         {/* Action Controls */}
         <div className="flex items-center gap-3">
+          {!isLoading && isLoggedIn && user?.role === "admin" && <AdminNotifications />}
           <div className="hidden sm:flex items-center gap-3">
             {isLoading ? (
               <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
@@ -166,11 +170,13 @@ export function Navbar() {
                   Apply Now
                 </Button>
 
-                <div className="flex items-center gap-2">
+                <div className="relative">
                   <button
-                    onClick={() => router.push(user?.role === "admin" ? "/admin" : "/dashboard")}
+                    onClick={() => setIsProfileMenuOpen((value) => !value)}
                     className="relative w-9 h-9 rounded-full overflow-hidden border border-zinc-200 dark:border-zinc-700 hover:ring-2 hover:ring-orange-500 transition-all shadow-sm"
-                    title="Dashboard"
+                    title="Account menu"
+                    aria-label="Account menu"
+                    aria-expanded={isProfileMenuOpen}
                   >
                     {user?.image ? (
                       <Image src={user.image} alt="User Profile" fill className="object-cover" />
@@ -180,15 +186,23 @@ export function Navbar() {
                       </div>
                     )}
                   </button>
-                  
-                  <Button
-                    onClick={handleLogout}
-                    variant="outline"
-                    size="sm"
-                    className="rounded-full font-bold border-zinc-200 dark:border-zinc-700 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" /> Logout
-                  </Button>
+
+                  {isProfileMenuOpen && (
+                    <div className="absolute right-0 top-12 z-[110] w-40 overflow-hidden rounded-xl border border-zinc-200 bg-white p-1 shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
+                      <button
+                        onClick={() => router.push(user?.role === "admin" ? "/admin" : "/dashboard")}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                      >
+                        <LayoutDashboard className="h-4 w-4" /> Dashboard
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                      >
+                        <LogOut className="h-4 w-4" /> Logout
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

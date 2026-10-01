@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/api-auth";
 import { Student } from "@/models/Student";
 import { connectToDatabase } from "@/lib/db";
+import { createAdminNotification } from "@/lib/admin-notifications";
 
 // ─── GET: HIGH-SPEED PAGINATED STUDENT DIRECTORY & METRICS ──────────────────
 
@@ -18,6 +19,7 @@ export async function GET(req: Request) {
     const duration = searchParams.get("duration")?.trim() || "";
     const fromDate = searchParams.get("fromDate")?.trim() || "";
     const toDate = searchParams.get("toDate")?.trim() || "";
+    const joiningDate = searchParams.get("joiningDate")?.trim() || "";
 
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const limit = Math.max(1, parseInt(searchParams.get("limit") || "15", 10));
@@ -51,6 +53,35 @@ export async function GET(req: Request) {
         endOfDay.setHours(23, 59, 59, 999);
         matchQuery.createdAt.$lte = endOfDay;
       }
+    }
+
+    if (joiningDate) {
+      const [year, month, day] = joiningDate.split("-").map(Number);
+      const selectedDate = new Date(year, month - 1, day);
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(joiningDate) ||
+        Number.isNaN(selectedDate.getTime()) ||
+        selectedDate.getFullYear() !== year ||
+        selectedDate.getMonth() !== month - 1 ||
+        selectedDate.getDate() !== day
+      ) {
+        return NextResponse.json(
+          { success: false, error: "Invalid joining date." },
+          { status: 400 },
+        );
+      }
+
+      matchQuery.doj = {
+        $in: [
+          joiningDate,
+          selectedDate.toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }),
+          `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`,
+        ],
+      };
     }
 
     if (search) {
@@ -366,6 +397,24 @@ export async function POST(req: NextRequest) {
 
     await newStudent.save();
 
+    await createAdminNotification({
+      type: "enrollment",
+      title: "New enrollment",
+      message: `${newStudent.name} enrolled in ${newStudent.domain} (${newStudent.duration}).`,
+      entityId: newStudent._id.toString(),
+      dedupeKey: `enrollment:${newStudent._id}`,
+    });
+    if (initialPaid > 0) {
+      await createAdminNotification({
+        type: "payment",
+        title: "Initial payment received",
+        message: `${newStudent.name} paid ₹${initialPaid.toLocaleString("en-IN")}.`,
+        entityId: newStudent._id.toString(),
+        amount: initialPaid,
+        dedupeKey: `payment:${installments[0].receiptNo}`,
+      });
+    }
+
     return NextResponse.json(
       {
         success: true,
@@ -391,7 +440,7 @@ export async function PUT(req: NextRequest) {
     if (auth.error) return auth.error;
     await connectToDatabase();
     const data = await req.json();
-    const { id, name, email, phone, college, domain, duration, doj, totalBilling } = data;
+    const { id, name, email, phone, college, domain, duration, doj, totalBilling, notes, clearFees } = data;
 
     if (!id) {
       return NextResponse.json(
@@ -429,9 +478,25 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    const updatedBilling =
-      totalBilling !== undefined ? Number(totalBilling) : currentStudent.totalBilling;
     const currentCollected = Number(currentStudent.totalCollection || 0);
+    const adminNotes = notes !== undefined ? String(notes).trim() : currentStudent.notes || "";
+    if (clearFees && !adminNotes) {
+      return NextResponse.json(
+        { success: false, error: "Add a note before marking fees as clear." },
+        { status: 400 },
+      );
+    }
+
+    const requestedBilling =
+      totalBilling !== undefined ? Number(totalBilling) : currentStudent.totalBilling;
+    if (!Number.isFinite(requestedBilling) || requestedBilling < currentCollected) {
+      return NextResponse.json(
+        { success: false, error: "Total fee cannot be less than the amount already collected." },
+        { status: 400 },
+      );
+    }
+
+    const updatedBilling = clearFees ? currentCollected : requestedBilling;
     const newPendingAmount = Math.max(0, updatedBilling - currentCollected);
     const newFeesStatus = newPendingAmount === 0 && updatedBilling > 0 ? "Clear" : "Pending";
 
@@ -449,6 +514,7 @@ export async function PUT(req: NextRequest) {
           totalBilling: updatedBilling,
           pendingAmount: newPendingAmount,
           feesStatus: newFeesStatus,
+          notes: adminNotes,
         },
       },
       { new: true, runValidators: true }

@@ -66,6 +66,8 @@ must independently call `requireRole` before reading input or mutating data.
 - `RazorpayOrder`: local order lock and audit trail (`creating`, `created`,
   `processed`, `expired`, `failed`), with unique lock/order/payment IDs.
 - `Blog`: editorial content and Cloudinary-backed media references.
+- `Notification`: compact admin event history with a 90-day TTL, read state,
+  and deduplication key.
 
 Important relationships are application-level rather than a single aggregate:
 `User.email` identifies the account, while `Student` represents an enrollment.
@@ -140,6 +142,9 @@ compact, professional, light, and blue-accented.
   `/api/programs`, `/api/catalog`, `Program` model.
 - Admin: `src/app/admin/page.tsx`; tracks, students, transactions, journals;
   `/api/tracks`, `/api/students`, `/api/payments`, `/api/blogs`.
+- Admin notifications: registrations, enrollments, and successful payments are
+  persisted in `Notification`; `/api/admin/notifications` provides paginated
+  history/read state and `/stream` provides single-instance EC2 SSE updates.
 - Blogs: `src/app/blog`, admin journals, `/api/blogs`, Cloudinary configuration.
 - Leads: `/api/send-lead` sends to a Google Sheet, email, and WhatsApp when
   configured.
