@@ -9,7 +9,6 @@ import {
   Layers,
   UserCheck,
   PhoneCall,
-  Headphones,
   X,
   Loader2,
   CheckCircle2,
@@ -77,7 +76,7 @@ export function EnrollmentActionSection() {
       } else {
         toast.error("Something went wrong. Please try again.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Network error. Please check your connection.");
     } finally {
       setIsSubmitting(false);

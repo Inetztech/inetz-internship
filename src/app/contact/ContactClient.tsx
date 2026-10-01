@@ -51,7 +51,7 @@ export default function ContactPage() {
       setIsSubmitted(true);
       setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
       setTimeout(() => setIsSubmitted(false), 5000);
-    } catch (error) {
+    } catch {
       toast.error("Failed to send message");
     } finally {
       setIsSubmitting(false);

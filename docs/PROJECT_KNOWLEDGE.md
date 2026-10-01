@@ -6,8 +6,7 @@ the few files involved in a task.
 ## Product and stack
 
 Inetz is a training/internship platform with public program and marketing pages,
-student enrollment/payment management, employer job management, and an admin
-back office.
+student enrollment/payment management and an admin back office.
 
 - Next.js 16 App Router, React 19, strict TypeScript
 - Tailwind CSS 4; shared UI primitives in `src/components/ui`
@@ -23,7 +22,6 @@ src/app/                 App Router pages, layouts, and HTTP route handlers
   api/                   Backend endpoints grouped by domain
   admin/                 Admin dashboard
   student/dashboard/     Student profile, enrollments, balances, receipts
-  employer/              Employer registration, jobs, and applicants
   programs/, blog/, ...  Public product/content pages
 src/components/          Cross-page components and feature widgets
   ui/                    Low-level reusable UI primitives
@@ -48,30 +46,25 @@ Primary files:
 - `src/lib/authOptions.ts`: NextAuth providers, sign-in rules, JWT/session role
   propagation, and `/login` configuration.
 - `src/proxy.ts`: redirects unauthenticated users and prevents cross-role access
-  to student, employer, admin, dashboard, and onboarding pages.
+  to student, admin, dashboard, and onboarding pages.
 - `src/lib/api-auth.ts`: `requireRole(...roles)` for server/API authorization.
 - `src/app/api/auth/register/route.ts`: student account registration.
-- `src/app/api/employer/register/route.ts`: employer account creation.
 - `src/app/api/auth/me/route.ts`: current account plus linked student data.
 - `src/app/api/student/link-phone/route.ts`: links an authenticated account to
   an enrollment where needed.
 
-Roles are `student`, `employer`, and `admin`. Google sign-in creates student
-accounts. Employers have approval state. Page gating is convenience, not the
-security boundary: protected route handlers must independently call
-`requireRole` before reading input or mutating data.
+Roles are `student` and `admin`. Google sign-in creates student accounts. Page
+gating is convenience, not the security boundary: protected route handlers
+must independently call `requireRole` before reading input or mutating data.
 
 ## Core data ownership
 
-- `User`: login identity, provider, role, and employer profile/approval fields.
+- `User`: login identity, provider, role, and phone fields.
 - `Student`: enrollment/profile, course domain and duration, billing total,
   embedded installments, derived collection/balance/status, certificate state.
 - `Program`: public catalog content, official price, syllabus, projects, reviews.
 - `RazorpayOrder`: local order lock and audit trail (`creating`, `created`,
   `processed`, `expired`, `failed`), with unique lock/order/payment IDs.
-- `Job`: employer-owned job post.
-- `Application`: legacy/employer-side job application record; student-facing
-  application/interview UI is currently outside the product flow.
 - `Blog`: editorial content and Cloudinary-backed media references.
 
 Important relationships are application-level rather than a single aggregate:
@@ -147,8 +140,6 @@ compact, professional, light, and blue-accented.
   `/api/programs`, `/api/catalog`, `Program` model.
 - Admin: `src/app/admin/page.tsx`; tracks, students, transactions, journals;
   `/api/tracks`, `/api/students`, `/api/payments`, `/api/blogs`.
-- Employers/jobs: `src/app/employer`, `src/app/jobs`, `/api/employer/jobs`,
-  `/api/jobs`, `Job` and `Application` models.
 - Blogs: `src/app/blog`, admin journals, `/api/blogs`, Cloudinary configuration.
 - Leads: `/api/send-lead` sends to a Google Sheet, email, and WhatsApp when
   configured.

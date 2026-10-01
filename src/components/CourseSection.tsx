@@ -3,11 +3,10 @@
 import { useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, X, Sparkles, Clock, Users, Eye } from "lucide-react";
+import { ArrowRight, X, Sparkles, Users, Eye } from "lucide-react";
 import { Section } from "@/components/ui/Section";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 type Course = {

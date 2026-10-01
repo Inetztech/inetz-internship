@@ -13,7 +13,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     await connectToDatabase();
     

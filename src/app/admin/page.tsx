@@ -33,7 +33,6 @@ export default function AdminPage() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [modules, setModules] = useState([{ label: "Day 01", title: "", topics: "", tools: "" }]);
   const [isPayOpen, setIsPayOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
 
   const fetchPrograms = useCallback(async () => {
     setListLoading(true);
@@ -130,85 +129,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleExportToExcel = async () => {
-    setExporting(true);
-    try {
-      const response = await fetch("/api/payments?download=true");
-      const result = await response.json();
-      const transactions = result.data || [];
-
-      if (!transactions || transactions.length === 0) {
-        setExporting(false);
-        return alert("There are currently no audited transactions found in the database layer to export.");
-      }
-
-      const headers = [
-        "Receipt Number",
-        "Date",
-        "Student Name",
-        "Mobile Number",
-        "Institution/College",
-        "Domain Selected",
-        "Duration",
-        "Total Course Fee (INR)",
-        "Previously Paid (INR)",
-        "Current Paid Now (INR)",
-        "Outstanding Balance (INR)",
-        "Classification",
-        "Channel Mode",
-        "UPI Reference Token Id",
-        "Billing Authority",
-      ];
-
-      const rows = transactions.map((t: any) => [
-        t.receiptNo || "N/A",
-        t.date || "N/A",
-        t.name || "N/A",
-        t.phone ? `'${t.phone}` : "N/A",
-        t.college || "N/A",
-        t.domain || "Web development",
-        t.courseName || "1 Month",
-        t.totalCoursePayment || 0,
-        t.alreadyPaid || 0,
-        t.paidAmount || 0,
-        t.balanceAmount || 0,
-        t.paymentType || "Part Payment",
-        t.paymentMethod || "Cash",
-        t.transactionId || "N/A",
-        t.billingBy || "SYSTEM",
-      ]);
-
-      const matrixContent = [headers, ...rows]
-        .map((cellsArray: Array<string | number>) =>
-          cellsArray
-            .map((cell: string | number) => {
-              const stringified = String(cell).replace(/"/g, '""');
-              return stringified.includes(",") || stringified.includes("\n") || stringified.includes('"')
-                ? `"${stringified}"`
-                : stringified;
-            })
-            .join(",")
-        )
-        .join("\n");
-
-      const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), matrixContent], {
-        type: "text/csv;charset=utf-8;",
-      });
-      const dlUrl = URL.createObjectURL(blob);
-      const downloadAnchor = document.createElement("a");
-      downloadAnchor.href = dlUrl;
-      downloadAnchor.download = `iNetz_Financial_Audit_Ledger_${new Date().toISOString().split("T")[0]}.csv`;
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      document.body.removeChild(downloadAnchor);
-      URL.revokeObjectURL(dlUrl);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to build tracking report.");
-    } finally {
-      setExporting(false);
-    }
-  };
 
   return (
     <div className="flex min-h-screen bg-zinc-50 font-sans">

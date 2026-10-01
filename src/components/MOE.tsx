@@ -51,10 +51,7 @@ const PARTNERS = [
 
 // UPDATED THEME: White Cards with Dark Text
 const SECTION_STYLE: React.CSSProperties = { background: "#130746" }; // Section stays Navy
-const EMERALD_ACCENT: React.CSSProperties = { color: "#10b981" };
 const CARD_BG = "#ffffff"; // Card background changed to White
-const TEXT_DARK = "#1e293b"; // Dark slate for primary text
-const TEXT_MUTED_DARK = "#64748b"; // Lighter slate for muted text
 
 const PARTNER_SCRIM_TOP: React.CSSProperties = {
   top: "46px", height: "24px",

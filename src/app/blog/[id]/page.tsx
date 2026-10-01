@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Clock, PlayCircle, BookOpen, Link2, ImageIcon, Mail, Cpu, Briefcase, Folder, Megaphone } from "lucide-react";
+import { ArrowLeft, Clock, PlayCircle, BookOpen, Mail, Cpu, Briefcase, Folder, Megaphone } from "lucide-react";
 import { FaFacebook, FaLinkedin, FaTwitter, FaInstagram } from "react-icons/fa";
 import ShareButtons from "@/components/ShareButtons";
 import GalleryViewer from "@/components/GalleryViewer";

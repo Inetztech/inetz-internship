@@ -3,7 +3,6 @@
 import { useRef, useState, useEffect } from "react";
 import Image from "next/image"; // Added for optimization
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Mail, Phone, ChevronRight } from "lucide-react";
 import { Counter } from "@/components/ui/Counter";
 
 const slides = [

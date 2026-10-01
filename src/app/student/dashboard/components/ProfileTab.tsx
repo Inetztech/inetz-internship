@@ -38,7 +38,6 @@ export interface ProfileTabProps {
   onSaveProfile: (e: React.FormEvent) => Promise<void>;
   savingProfile: boolean;
   profileMsg: { type: "success" | "error"; text: string } | null;
-  setProfileMsg: React.Dispatch<React.SetStateAction<{ type: "success" | "error"; text: string } | null>>;
 }
 
 export default function ProfileTab({
@@ -48,7 +47,6 @@ export default function ProfileTab({
   onSaveProfile,
   savingProfile,
   profileMsg,
-  setProfileMsg,
 }: ProfileTabProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [imgError, setImgError] = useState(false);

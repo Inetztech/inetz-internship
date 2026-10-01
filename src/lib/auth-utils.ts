@@ -12,7 +12,7 @@ export async function getAuthUser() {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return payload; // Returns { id, email }
-  } catch (err) {
+  } catch {
     return null;
   }
 }

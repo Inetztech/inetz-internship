@@ -12,13 +12,7 @@ import {
   Zap,
   TrendingUp,
   Map,
-  Users,
-  Target as LucideTarget,
-  Rocket,
-  Shield as LucideShield,
   Lock as LucideLock,
-  Server as LucideServer,
-  Cloud as LucideCloud
 } from "lucide-react";
 import {
   SiGoogle,

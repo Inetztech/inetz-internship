@@ -17,7 +17,7 @@ function parseCalendarDate(dateStr?: string): number {
   // 2. Handle DD-MM-YYYY or DD/MM/YYYY formats
   const dmyMatch = cleaned.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
   if (dmyMatch) {
-    const [_, day, month, year] = dmyMatch;
+    const [, day, month, year] = dmyMatch;
     const d = new Date(Number(year), Number(month) - 1, Number(day)).getTime();
     if (!isNaN(d)) return d;
   }
@@ -29,7 +29,7 @@ function parseCalendarDate(dateStr?: string): number {
   };
   const textMatch = cleaned.match(/^(\d{1,2})\s+([a-zA-Z]{3,9})\s+(\d{4})/);
   if (textMatch) {
-    const [_, day, mon, year] = textMatch;
+    const [, day, mon, year] = textMatch;
     const monIndex = months[mon.slice(0, 3).toLowerCase()];
     if (monIndex !== undefined) {
       return new Date(Number(year), monIndex, Number(day)).getTime();

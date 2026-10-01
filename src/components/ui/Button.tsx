@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -33,16 +32,6 @@ export function Button({
     md: "h-11 px-6 text-sm",
     lg: "h-14 px-8 text-base",
   };
-
-  const content = (
-    <motion.span
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex items-center gap-2"
-    >
-      {children}
-    </motion.span>
-  );
 
   if (href) {
     return (

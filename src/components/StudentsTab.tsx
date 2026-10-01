@@ -8,15 +8,6 @@ import StudentPagination from "./students/StudentPagination";
 import AddStudentModal from "./students/AddStudentModal";
 import EditStudentModal from "./students/EditStudentModal";
 
-const DEFAULT_FORM_DOMAINS = [
-  "Web Development",
-  "Data Analytics",
-  "Python Development",
-  "Cyber Security",
-  "Android App Development",
-  "UI/UX Design",
-];
-
 const DEFAULT_DURATIONS = ["1 Week", "2 Weeks", "1 Month", "2 Months", "3 Months", "6 Months"];
 
 export default function StudentsTab() {

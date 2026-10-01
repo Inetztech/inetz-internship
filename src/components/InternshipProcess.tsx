@@ -10,7 +10,6 @@ import {
   Presentation,
   CheckCircle,
   Award,
-  ArrowRight,
 } from "lucide-react";
 import { Section } from "@/components/ui/Section";
 import { Card } from "@/components/ui/Card";

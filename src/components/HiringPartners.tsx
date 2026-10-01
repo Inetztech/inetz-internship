@@ -3,10 +3,8 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Section } from "@/components/ui/Section";
-import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 
-import { Counter } from "@/components/ui/Counter";
 
 export default function HiringPartners() {
   const partners = [

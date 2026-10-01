@@ -34,7 +34,7 @@ export default function StudentDashboardPage() {
   const [courses, setCourses] = useState([]);
   const [transactions, setTransactions] = useState([]);
 
-  // 1. Fetch Student Profile & Enrollment Data from /api/student/me or /api/auth/me
+  // Fetch student profile and enrollment data.
   const fetchStudentProfile = useCallback(async () => {
     setLoadingProfile(true);
     try {
@@ -86,19 +86,11 @@ export default function StudentDashboardPage() {
     setProfileMsg(null);
 
     try {
-      let res = await fetch("/api/student/me", {
+      const res = await fetch("/api/auth/me", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profile),
       });
-
-      if (!res.ok) {
-        res = await fetch("/api/auth/me", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(profile),
-        });
-      }
 
       const data = await res.json();
 
@@ -144,7 +136,6 @@ export default function StudentDashboardPage() {
             onSaveProfile={handleSaveProfile}
             savingProfile={savingProfile}
             profileMsg={profileMsg}
-            setProfileMsg={setProfileMsg}
           />
         )}
 

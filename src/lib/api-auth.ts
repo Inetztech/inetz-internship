@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/authOptions";
 
-export type AppRole = "student" | "employer" | "admin";
+export type AppRole = "student" | "admin";
 
 export async function requireRole(...roles: AppRole[]) {
   const session = await getServerSession(authOptions);

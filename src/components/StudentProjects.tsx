@@ -4,24 +4,12 @@ import { useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  MoveUpRight,
   X,
-  CheckCircle2,
-  Rocket,
-  Globe,
-  Layout,
-  Search,
-  BarChart3,
-  ArrowRight,
   Shield,
   Zap,
   Cpu,
-  ChevronLeft,
-  ChevronRight,
   ArrowUpRight,
   Layers,
-  Code2,
-  Terminal
 } from "lucide-react";
 import {
   SiReact,
@@ -31,13 +19,8 @@ import {
   SiMongodb,
   SiPython,
   SiPostgresql,
-  SiTypescript,
-  SiFramer,
-  SiPrisma
 } from "react-icons/si";
 import { Section } from "@/components/ui/Section";
-import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
 import { Card } from "./ui/Card";
 
 type Project = {
@@ -252,7 +235,6 @@ const studentProjects: Project[] = [
               whileInView={{ opacity: 1, scale: 1 }}
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold uppercase tracking-widest mb-4"
             >
-              {/* <Terminal className="h-3.5 w-3.5" /> */}
               Build Showcase
             </motion.div>
             <motion.h2

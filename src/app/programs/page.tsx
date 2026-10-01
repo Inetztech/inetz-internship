@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import CourseCard from "@/components/programs/courseCard";
 import InternshipPrograms from "@/components/programs/programDetails";

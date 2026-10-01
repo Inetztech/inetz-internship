@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Loader2, FileSpreadsheet, Calendar, X } from "lucide-react";
+import { Plus, Loader2, FileSpreadsheet } from "lucide-react";
 import TransactionsList from "./TransactionLists";
 
 interface CollectionsTabProps {
@@ -10,14 +10,9 @@ interface CollectionsTabProps {
 
 export default function CollectionsTab({ setIsPayOpen }: CollectionsTabProps) {
   // ─── LOCAL STATE MATRICES ───────────────────────────────────────────────────
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
+  const [startDate] = useState<string>("");
+  const [endDate] = useState<string>("");
   const [exporting, setExporting] = useState<boolean>(false);
-
-  const handleClearDates = () => {
-    setStartDate("");
-    setEndDate("");
-  };
 
   // ─── 🎯 SECURE FULL UNPAGINATED EXCEL DISK EXPORTER ───────────────────────
   const handleExportToExcel = async () => {

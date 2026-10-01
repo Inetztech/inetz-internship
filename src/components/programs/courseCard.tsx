@@ -31,7 +31,6 @@ const CourseCard = ({
   stack,
   title,
   image,
-  subtitle,
   description,
   modules,
   onSelect,

@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { Section } from "@/components/ui/Section";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
@@ -47,27 +47,6 @@ const testimonials = [
 
 export default function SuccessStories() {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-
-  const checkScroll = () => {
-    if (scrollRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-    }
-  };
-
-  const scroll = (direction: "left" | "right") => {
-    if (scrollRef.current) {
-      const amount = 340;
-      scrollRef.current.scrollBy({
-        left: direction === "left" ? -amount : amount,
-        behavior: "smooth",
-      });
-    }
-  };
-
   return (
     <Section className="bg-zinc-50 dark:bg-zinc-950 py-20 overflow-hidden relative border-t border-zinc-200 dark:border-zinc-900">
       {/* Ambient background glow */}
@@ -97,30 +76,11 @@ export default function SuccessStories() {
             Our graduates don't just find jobs; they build careers at industry leaders like Zoho, Brightstack, and more.
           </p>
 
-          {/* <div className="flex gap-4">
-            <button
-              onClick={() => scroll("left")}
-              disabled={!canScrollLeft}
-              className="h-12 w-12 rounded-full border border-zinc-200 dark:border-zinc-800 flex items-center justify-center hover:bg-white dark:hover:bg-zinc-900 disabled:opacity-20 transition-all shadow-sm group"
-              title="Scroll Left"
-            >
-              <ChevronLeft className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
-            </button>
-            <button
-              onClick={() => scroll("right")}
-              disabled={!canScrollRight}
-              className="h-12 w-12 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center hover:bg-emerald-600 dark:hover:bg-emerald-500 disabled:opacity-20 transition-all shadow-md group"
-              title="Scroll Right"
-            >
-              <ChevronRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
-            </button>
-          </div> */}
         </div>
 
         {/* Scroll Track */}
         <div
           ref={scrollRef}
-          onScroll={checkScroll}
           className="flex gap-6 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-4"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >

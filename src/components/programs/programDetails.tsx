@@ -225,7 +225,7 @@ const InternshipPrograms = ({ initialStack = "mern", onBack }: { initialStack?: 
       } else {
         toast.error("Something went wrong. Please try again.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Network error. Please check your connection.");
     } finally {
       setIsSubmitting(false);

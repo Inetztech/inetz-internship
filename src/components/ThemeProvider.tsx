@@ -2,7 +2,6 @@
 
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import type { ThemeProviderProps } from "next-themes";
-import { useEffect, useState } from "react";
 
 // Patch console.error to suppress the React 19 / next-themes script tag warning
 if (typeof window !== "undefined") {

@@ -6,15 +6,11 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password?: string;
-  role: "student" | "employer" | "admin";
+  role: "student" | "admin";
   image?: string;
   provider?: string;
   
-  // Employer Profile Fields
-  companyName?: string;
-  companyWebsite?: string;
   phone?: string;
-  isApproved?: boolean;
 
   createdAt: Date;
   updatedAt: Date;
@@ -39,17 +35,13 @@ const UserSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ["student", "employer", "admin"],
+      enum: ["student", "admin"],
       default: "student",
     },
     image: { type: String },
     provider: { type: String, default: "credentials" },
 
-    // Employer Profile Additions
-    companyName: { type: String, trim: true },
-    companyWebsite: { type: String, trim: true },
     phone: { type: String, trim: true },
-    isApproved: { type: Boolean, default: true },
   },
   {
     timestamps: true, // Replaces manual createdAt with automatic createdAt & updatedAt tracking

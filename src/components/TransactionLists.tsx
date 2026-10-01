@@ -217,7 +217,7 @@ export default function TransactionsList() {
       } else {
         setError(result.error ?? "Failed to download transaction data.");
       }
-    } catch (err) {
+    } catch {
       setError("Network exception error occurred while pulling live data grids.");
     } finally {
       setIsLoading(false);

@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     // 1. Await database connection promise concurrently with params resolution
-    const [_, { slug }] = await Promise.all([
+    const [, { slug }] = await Promise.all([
       connectToDatabase(),
       params,
     ]);

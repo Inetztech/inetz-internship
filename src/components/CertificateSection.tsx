@@ -1,37 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle, Star } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import Image from "next/image";
 
-type Testimonial = {
-    name: string;
-    role: string;
-    text: string;
-    initials: string;
-};
 
 export default function CertificateSection() {
-    const testimonials: Testimonial[] = [
-        {
-            name: "Arun J.",
-            role: "Software Engineer, Zoho",
-            text: "The real-time project experience at Inetz helped me clear my technical rounds at Zoho effortlessly. Highly recommended!",
-            initials: "AJ",
-        },
-        {
-            name: "Sneha P.",
-            role: "System Associate, Infosys",
-            text: "Excellent mentors who explain concepts with real-world scenarios. The placement support is genuine and active.",
-            initials: "SP",
-        },
-        {
-            name: "Rahul K.",
-            role: "Web Developer, TCS",
-            text: "Flexible timings allowed me to manage college while gaining professional skills. Truly the best in Chennai!",
-            initials: "RK",
-        },
-    ];
 
     return (
         <section className="bg-gradient-to-br from-[#061E26] via-[#0A1A2F] to-[#061E26] text-white py-24 overflow-hidden relative border-y border-emerald-900/30">

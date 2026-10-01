@@ -6,10 +6,8 @@ import {
   User,
   GraduationCap,
   CreditCard,
-  LogOut,
-  Building
+  LogOut
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 interface SidebarProps {
@@ -80,13 +78,6 @@ export default function Sidebar({
 
       {/* Sidebar Footer */}
       <div className="mt-6 space-y-2 border-t border-slate-100 pt-5 md:mt-auto">
-        <Link
-          href="/jobs"
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-        >
-          <Building size={14} /> Browse Job Openings
-        </Link>
-
         <button
           onClick={async () => {
             await signOut({ redirect: false });

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CalendarDays, Menu, X, LogOut, LayoutDashboard, User, ShieldCheck, Briefcase } from "lucide-react";
+import { CalendarDays, Menu, X, LogOut, LayoutDashboard, User, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -14,7 +14,6 @@ const navItems = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
   { href: "/programs", label: "Programs" },
-  // { href: "/hire-from-us", label: "Hire From Us" },
   { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
 ] as const;

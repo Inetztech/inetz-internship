@@ -53,13 +53,8 @@ export const authOptions: NextAuthOptions = {
           );
         }
 
-        if (
-          dbUser.role === "employer" &&
-          dbUser.isApproved === false
-        ) {
-          throw new Error(
-            "Your employer account is currently pending admin approval."
-          );
+        if (dbUser.role !== "student" && dbUser.role !== "admin") {
+          throw new Error("This account role is no longer supported.");
         }
 
         return {
@@ -69,7 +64,6 @@ export const authOptions: NextAuthOptions = {
           image: dbUser.image ? String(dbUser.image) : null,
           role: (dbUser.role as string) || "student",
           phone: (dbUser.phone as string) || "",
-          companyName: (dbUser.companyName as string) || "",
         };
       },
     }),
@@ -104,7 +98,7 @@ export const authOptions: NextAuthOptions = {
             });
           }
 
-          if (dbUser.role === "employer" && dbUser.isApproved === false) {
+          if (dbUser.role !== "student" && dbUser.role !== "admin") {
             return false;
           }
 
@@ -112,7 +106,6 @@ export const authOptions: NextAuthOptions = {
 
           (user as any).role = dbUser.role || "student";
           (user as any).phone = dbUser.phone || "";
-          (user as any).companyName = dbUser.companyName || "";
 
           return true;
         } catch (error) {
@@ -133,7 +126,6 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = (user as any).role || "student";
         token.phone = (user as any).phone || "";
-        token.companyName = (user as any).companyName || "";
       }
 
       if (trigger === "update" && session) {
@@ -150,8 +142,6 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role || "student";
         (session.user as any).phone = token.phone || "";
-        (session.user as any).companyName =
-          token.companyName || "";
       }
 
       return session;

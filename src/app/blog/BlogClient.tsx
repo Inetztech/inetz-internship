@@ -3,21 +3,19 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Award, Briefcase, HelpCircle, Check, Search, Calendar, Clock, ChevronLeft, ChevronRight, PlayCircle, Star, Send } from "lucide-react";
+import { ArrowRight, BookOpen, Award, Briefcase, Check, Search, Calendar, Clock, ChevronLeft, ChevronRight, PlayCircle, Star, Send } from "lucide-react";
 import ImageLightbox from "@/components/ImageLightbox";
 
 export default function BlogClient() {
   const [activeTag, setActiveTag] = useState("All");
   const [searchInput, setSearchInput] = useState("");
   const [dbBlogs, setDbBlogs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [subscribed, setSubscribed] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [selectedGalleryIndex, setSelectedGalleryIndex] = useState(0);
 
   useEffect(() => {
     const fetchBlogs = async () => {
-      setLoading(true);
       try {
         const res = await fetch("/api/blogs", { cache: "no-store" });
         if (res.ok) {
@@ -26,8 +24,6 @@ export default function BlogClient() {
         }
       } catch (e) {
         console.error(e);
-      } finally {
-        setLoading(false);
       }
     };
     fetchBlogs();

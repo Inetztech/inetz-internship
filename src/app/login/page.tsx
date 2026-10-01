@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { 
   Mail, 
   Lock, 
@@ -26,7 +26,6 @@ const LOGIN_QUOTES = [
 ];
 
 function LoginContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [mounted, setMounted] = useState(false);
@@ -88,7 +87,7 @@ function LoginContent() {
         setError("Failed to establish session. Please try again.");
         setLoading(false);
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected authentication error occurred.");
       setLoading(false);
     }

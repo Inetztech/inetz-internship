@@ -4,19 +4,12 @@ import { motion } from "framer-motion";
 import {
   Users,
   Target,
-  Award,
   BookOpen,
   Rocket,
-  CheckCircle2,
   Code2,
   Laptop,
   Sparkles,
-  Star,
-  Quote,
   ArrowRight,
-  MonitorPlay,
-  Building2,
-  Users2,
   Layers
 } from "lucide-react";
 import { Section } from "@/components/ui/Section";
