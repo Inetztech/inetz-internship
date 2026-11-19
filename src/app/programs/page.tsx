@@ -12,10 +12,11 @@ const ALL_SKILLS = Array.from(new Set(Object.values(STACK_MAPPING).flat()));
 // Pre-double the array so the ticker JSX doesn't allocate a new array on each render
 const TICKER_SKILLS = [...ALL_SKILLS, ...ALL_SKILLS];
 const FEATURED_PROGRAMS = ["rag-3-months", "aiautomation-3-months"];
+type CatalogProgram = { title: string; slug: string; subtitle: string; image: string; modules: number };
 
 const ProgramsMainPage = () => {
   const [selectedStack, setSelectedStack] = useState<string | null>(null);
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<CatalogProgram[]>([]);
   const [loading, setLoading] = useState(true);
 
   // ─── Stable callbacks ──────────────────────────────────────────────────────
@@ -32,13 +33,13 @@ const ProgramsMainPage = () => {
         const res = await fetch("/api/catalog", {
           signal: controller.signal,
         });
-        const data = await res.json();
+        const data: CatalogProgram[] = await res.json();
 
         /**
          * LOGIC: If the DB has multiple durations for one course,
          * we only show one unique card in the catalog.
          */
-        const uniqueCatalog = data.reduce((acc: any[], current: any) => {
+        const uniqueCatalog = data.reduce<CatalogProgram[]>((acc, current) => {
           const exists = acc.find((item) => item.title === current.title);
           if (!exists) return acc.concat([current]);
           return acc;
