@@ -197,7 +197,7 @@ const ProgramsMainPage = () => {
                       image={item.image}
                       onSelect={handleSelect}
                       description={item.subtitle}
-                      modules={item.syllabus?.length}
+                      modules={item.modules}
                     />
                   ))
                 )}

@@ -59,6 +59,8 @@ export const BRAND_DATA: Record<string, BrandInfo> = {
   linkedin: { color: "#0A66C2" },
   slack: { color: "#4A154B" },
   notion: { color: "#111111" },
+  rag: { color: "#10A37F" },
+  aiautomation: { color: "#7C3AED" },
 };
 
 export const DEVICON_MAP: Record<string, string> = {
@@ -113,6 +115,8 @@ export const DEVICON_MAP: Record<string, string> = {
   linkedin: "devicon-linkedin-plain",
   slack: "devicon-slack-plain",
   notion: "devicon-notion-plain",
+  rag: "devicon-python-plain",
+  aiautomation: "devicon-python-plain",
 };
 
 export const STACK_MAPPING: Record<string, string[]> = {
@@ -130,6 +134,8 @@ export const STACK_MAPPING: Record<string, string[]> = {
   react: ["react", "javascript", "typescript", "html5", "css3"],
   digital: ["google", "facebook", "canva", "wordpress"],
   human: ["linkedin", "slack", "notion", "excel"],
+  rag: ["python", "docker", "aws", "git"],
+  aiautomation: ["python", "postgresql", "mysql", "google"],
 };
 
 export const MARKET_INSIGHTS: Record<string, { demand: string; trend: string }> = {
@@ -149,6 +155,8 @@ export const MARKET_INSIGHTS: Record<string, { demand: string; trend: string }> 
   digitalmarketing: { demand: "Rising", trend: "Digital Growth" },
   human: { demand: "Stable", trend: "People Operations" },
   humanresources: { demand: "Stable", trend: "People Operations" },
+  rag: { demand: "Explosive", trend: "Generative AI & Retrieval" },
+  aiautomation: { demand: "Explosive", trend: "AI Workflow Automation" },
 };
 
 export const getStackLogos = (stack: TechStack | string): string[] => {
