@@ -58,7 +58,7 @@ export default function AdminPage() {
   const fetchPrograms = useCallback(async () => {
     setListLoading(true);
     try {
-      const res = await fetch("/api/programs");
+      const res = await fetch("/api/programs?full=true", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         setPrograms(Array.isArray(data) ? data : data.programs || []);
@@ -113,8 +113,13 @@ export default function AdminPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this track?")) return;
     try {
-      const res = await fetch(`/api/programs/${id}`, { method: "DELETE" });
-      if (res.ok) setPrograms((prev) => prev.filter((p) => p._id !== id));
+      const res = await fetch("/api/programs", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) return alert((await res.json()).error || "Unable to delete track.");
+      setPrograms((prev) => prev.filter((p) => p._id !== id));
     } catch {
       alert("Network error.");
     }
@@ -125,40 +130,25 @@ export default function AdminPage() {
       return alert("Title and Slug are required.");
     setUploading(true);
     const payload = {
-      slug: formData.slug,
-      durationKey: formData.duration,
-      variant: {
-        title: formData.title,
-        subtitle: formData.subtitle,
-        price: Number(formData.price),
-        originalPrice: Number(formData.originalPrice),
-        heroImg: formData.heroImg,
-        syllabus: modules.map((m) => ({
-          ...m,
-          topics: m.topics
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean),
-          tools: m.tools
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean),
-        })),
-      },
+      ...formData,
+      price: Number(formData.price),
+      originalPrice: Number(formData.originalPrice),
+      syllabus: modules.map((m) => ({
+        ...m,
+        topics: m.topics.split(",").map((t) => t.trim()).filter(Boolean),
+        tools: m.tools.split(",").map((t) => t.trim()).filter(Boolean),
+      })),
     };
-    const data = new FormData();
-    data.append("mainData", JSON.stringify(payload));
-    data.append("skipPdf", "true");
 
     try {
-      const res = await fetch("/api/programs/manual-save", {
+      const res = await fetch("/api/programs", {
         method: "POST",
-        body: data,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-      if (res.ok) {
-        await fetchPrograms();
-        setView("list");
-      }
+      if (!res.ok) return alert((await res.json()).error || "Unable to publish track.");
+      await fetchPrograms();
+      setView("list");
     } catch {
       alert("Network error.");
     } finally {

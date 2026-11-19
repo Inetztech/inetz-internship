@@ -57,10 +57,10 @@ export default function TracksTab({
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
             <h1 className="text-3xl font-black text-zinc-900 tracking-tight">Track Management</h1>
-            <p className="text-zinc-400 text-sm mt-1">{programs.length} tracks published</p>
+            <p className="text-zinc-500 text-sm mt-1">{programs.length} published track variants</p>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={fetchPrograms} className="p-3 rounded-2xl border border-zinc-200 bg-white text-zinc-400 hover:text-zinc-700 transition-colors">
+            <button title="Refresh tracks" onClick={fetchPrograms} className="p-3 rounded-2xl border border-zinc-200 bg-white text-zinc-400 hover:text-zinc-700 transition-colors">
               <RefreshCw size={16} className={listLoading ? "animate-spin" : ""} />
             </button>
             <button onClick={() => setIsPayOpen(true)} className="bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-6 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 h-11">
@@ -128,7 +128,7 @@ export default function TracksTab({
         </div>
         <button onClick={handleSave} disabled={uploading} className="bg-zinc-900 text-white px-10 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl flex items-center gap-2 disabled:opacity-60">
           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
-          {uploading ? "Saving..." : "Publish Track"}
+          {uploading ? "Saving..." : editingId ? "Save Changes" : "Publish Track"}
         </button>
       </div>
 
@@ -138,6 +138,7 @@ export default function TracksTab({
             <SectionHeader label="Identity & Duration" />
             <AdminInput placeholder="Course Title" value={formData.title} onChange={(v: string) => setFormData((f: any) => ({ ...f, title: v }))} />
             <AdminInput placeholder="Slug" value={formData.slug} onChange={(v: string) => setFormData((f: any) => ({ ...f, slug: v }))} />
+            <p className="px-1 text-[10px] text-zinc-400">Use track-duration, for example python-3-months.</p>
             <select value={formData.duration} onChange={e => setFormData((f: any) => ({ ...f, duration: e.target.value }))} className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-2xl text-sm text-zinc-800 outline-none">
               {DURATIONS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
@@ -146,6 +147,7 @@ export default function TracksTab({
             <SectionHeader label="Commercials & Visuals" />
             <AdminInput placeholder="Short Subtitle" value={formData.subtitle} onChange={(v: string) => setFormData((f: any) => ({ ...f, subtitle: v }))} />
             <AdminInput placeholder="Sale Price (₹)" type="number" value={formData.price} onChange={(v: string) => setFormData((f: any) => ({ ...f, price: v }))} />
+            <AdminInput placeholder="Original Price (₹)" type="number" value={formData.originalPrice} onChange={(v: string) => setFormData((f: any) => ({ ...f, originalPrice: v }))} />
             <AdminInput placeholder="Hero Image URL" value={formData.heroImg} onChange={(v: string) => setFormData((f: any) => ({ ...f, heroImg: v }))} />
           </section>
         </div>
@@ -169,6 +171,7 @@ export default function TracksTab({
                     <input placeholder="Module Title" value={m.title} onChange={e => handleUpdateModuleField(i, "title", e.target.value)} className="flex-1 font-bold text-zinc-900 bg-transparent outline-none border-b border-zinc-200" />
                   </div>
                   <input placeholder="Topics (comma separated)" value={m.topics} onChange={e => handleUpdateModuleField(i, "topics", e.target.value)} className="w-full text-xs text-zinc-500 bg-transparent outline-none" />
+                  <input placeholder="Tools (comma separated)" value={m.tools} onChange={e => handleUpdateModuleField(i, "tools", e.target.value)} className="w-full text-xs text-zinc-500 bg-transparent outline-none" />
                   <button onClick={() => setModules(modules.filter((_, idx) => idx !== i))} className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 text-zinc-300 hover:text-red-500 transition-opacity">
                     <Trash2 size={14} />
                   </button>
