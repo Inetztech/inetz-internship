@@ -11,6 +11,7 @@ import { Terminal, Loader2 } from "lucide-react";
 const ALL_SKILLS = Array.from(new Set(Object.values(STACK_MAPPING).flat()));
 // Pre-double the array so the ticker JSX doesn't allocate a new array on each render
 const TICKER_SKILLS = [...ALL_SKILLS, ...ALL_SKILLS];
+const FEATURED_PROGRAMS = ["rag-3-months", "aiautomation-3-months"];
 
 const ProgramsMainPage = () => {
   const [selectedStack, setSelectedStack] = useState<string | null>(null);
@@ -43,7 +44,11 @@ const ProgramsMainPage = () => {
           return acc;
         }, []);
 
-        setCourses(uniqueCatalog);
+        setCourses(uniqueCatalog.sort((a, b) => {
+          const aRank = FEATURED_PROGRAMS.indexOf(a.slug);
+          const bRank = FEATURED_PROGRAMS.indexOf(b.slug);
+          return (aRank < 0 ? 99 : aRank) - (bRank < 0 ? 99 : bRank);
+        }));
       } catch (err) {
         // Ignore AbortError — it's intentional on cleanup
         if (err instanceof Error && err.name !== "AbortError") {
