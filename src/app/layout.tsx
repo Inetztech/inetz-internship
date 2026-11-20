@@ -5,14 +5,12 @@ import { Navbar } from "@/components/Navbar";
 import dynamic from "next/dynamic";
 import { Toaster } from "sonner";
 import Providers from "./providers";
+import Script from "next/script";
 
 const Footer = dynamic(() => import("@/components/Footer"), { ssr: true });
 
-const WhatsAppButton = dynamic(
-  () =>
-    import("@/components/WhatsAppButton").then(
-      (mod) => mod.WhatsAppButton
-    )
+const WhatsAppButton = dynamic(() =>
+  import("@/components/WhatsAppButton").then((mod) => mod.WhatsAppButton),
 );
 
 export const metadata: Metadata = {
@@ -123,12 +121,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className="h-full antialiased"
-      suppressHydrationWarning
-    >
+    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-white text-zinc-900 font-sans">
+        <Script id="google-tag-manager" strategy="afterInteractive">
+          {`
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      'gtm.start': new Date().getTime(),
+      event: 'gtm.js'
+    });
+  `}
+        </Script>
+
+        <Script
+          src="https://www.googletagmanager.com/gtm.js?id=GTM-5KX59CZL"
+          strategy="afterInteractive"
+        />
         {/* NextAuth context sits at the absolute top of the body execution stack */}
         <Providers>
           <ThemeProvider forcedTheme="light">
@@ -148,10 +156,10 @@ export default function RootLayout({
                     {
                       "@type": "Organization",
                       "@id": "https://inetztech.com/#organization",
-                      "name": "Inetz Technologies",
-                      "url": "https://inetztech.com",
-                      "logo": "https://inetztech.com/logo.png",
-                      "sameAs": [
+                      name: "Inetz Technologies",
+                      url: "https://inetztech.com",
+                      logo: "https://inetztech.com/logo.png",
+                      sameAs: [
                         "https://www.linkedin.com/company/inetztech",
                         "https://www.facebook.com/inetztech",
                         "https://www.instagram.com/inetztech",
@@ -160,19 +168,19 @@ export default function RootLayout({
                     },
                     {
                       "@type": "EducationalOrganization",
-                      "name": "Inetz Technologies",
-                      "description":
+                      name: "Inetz Technologies",
+                      description:
                         "Provider of the best internships in Chennai with a focus on Full Stack Development and Placement.",
-                      "address": {
+                      address: {
                         "@type": "PostalAddress",
-                        "addressLocality": "Chennai",
-                        "addressRegion": "TN",
-                        "postalCode": "600001",
-                        "addressCountry": "IN",
+                        addressLocality: "Chennai",
+                        addressRegion: "TN",
+                        postalCode: "600001",
+                        addressCountry: "IN",
                       },
-                      "telephone": "+91-9840234475",
-                      "url": "https://inetztech.com",
-                      "image": "https://inetztech.com/logo.png",
+                      telephone: "+91-9840234475",
+                      url: "https://inetztech.com",
+                      image: "https://inetztech.com/logo.png",
                     },
                   ],
                 }),

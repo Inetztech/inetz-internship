@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com;
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com https://www.googletagmanager.com;
     style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
     style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
     font-src 'self' data: https://cdn.jsdelivr.net;
@@ -12,9 +12,11 @@ const cspHeader = `
     form-action 'self';
     frame-ancestors 'none';
     frame-src 'self' https://api.razorpay.com;
-    connect-src 'self' https://lumberjack.razorpay.com https://api.razorpay.com https://autocomplete.clearbit.com;
+    connect-src 'self' https://lumberjack.razorpay.com https://api.razorpay.com https://autocomplete.clearbit.com https://www.google-analytics.com https://region1.google-analytics.com;
     upgrade-insecure-requests;
-`.replace(/\s+/g, " ").trim();
+`
+  .replace(/\s+/g, " ")
+  .trim();
 
 const nextConfig: NextConfig = {
   // ─── DOCKER OUTPUT ──────────────────────────────────────────────────────────
