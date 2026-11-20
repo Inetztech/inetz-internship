@@ -211,7 +211,7 @@ export function Navbar() {
       <div className="bg-emerald-600 px-4 py-1 text-white shadow-md">
         <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 text-center text-xs font-bold sm:text-sm">
           <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-200 shadow-[0_0_10px_rgba(167,243,208,0.9)]" aria-hidden="true" />
-          <span>New 3-month programs: Generative AI using RAG &amp; AI Automation</span>
+          <span>New 3-month programs : Generative AI using RAG &amp; AI Automation</span>
           <Link href="/programs#catalog-grid" className="ml-1 border-b border-emerald-200 font-bold text-emerald-50 transition hover:border-white hover:text-white">
             Explore <span aria-hidden="true">→</span>
           </Link>
