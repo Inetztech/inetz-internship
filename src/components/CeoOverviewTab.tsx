@@ -23,6 +23,8 @@ interface OverviewData {
   series: { key: string; label: string; admissions: number; collected: number }[];
 }
 
+type StudentList = "sixMonths" | "threeMonths" | "other" | "outstanding";
+
 const money = (value: number) => `₹${value.toLocaleString("en-IN")}`;
 
 function MonthlyChart({ title, subtitle, series, field, currency, variant = "bar" }: {
@@ -99,7 +101,7 @@ export default function CeoOverviewTab() {
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedDuration, setSelectedDuration] = useState<"sixMonths" | "threeMonths" | "other" | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState<StudentList | null>(null);
   const [durationPage, setDurationPage] = useState(1);
   const [durationStudents, setDurationStudents] = useState<StudentRecord[]>([]);
   const [durationPages, setDurationPages] = useState(1);
@@ -138,7 +140,9 @@ export default function CeoOverviewTab() {
     const controller = new AbortController();
     setDurationLoading(true);
     setDurationError("");
-    const params = new URLSearchParams({ durationGroup: selectedDuration, status: "current", page: String(durationPage), limit: "15" });
+    const isOutstandingList = selectedDuration === "outstanding";
+    const params = new URLSearchParams({ status: isOutstandingList ? "outstanding" : "current", page: String(durationPage), limit: "15" });
+    if (!isOutstandingList) params.set("durationGroup", selectedDuration);
     fetch(`/api/students?${params}`, { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
         const result = await response.json();
@@ -192,7 +196,7 @@ export default function CeoOverviewTab() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map(({ label, value, icon: Icon, tone }) => (
-          <section key={label} className="flex min-w-0 flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <section key={label} className="relative flex min-w-0 flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <span className={`inline-flex shrink-0 rounded-xl p-2 ${tone}`}><Icon size={18} /></span>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
@@ -206,6 +210,7 @@ export default function CeoOverviewTab() {
                 )}
               </div>
             </div>
+            {label === "Outstanding balance" && <button type="button" aria-label="View enrollments with outstanding balances" onClick={() => { setDurationStudents([]); setDurationTotal(0); setDurationLoading(true); setDurationPage(1); setSelectedDuration("outstanding"); }} className="absolute inset-0 cursor-pointer rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />}
           </section>
         ))}
       </div>
@@ -232,8 +237,8 @@ export default function CeoOverviewTab() {
           <div role="dialog" aria-modal="true" aria-labelledby="duration-students-heading" className="flex max-h-[90dvh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl">
             <div className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white px-5 py-4">
               <div>
-                <h3 id="duration-students-heading" className="text-lg font-bold text-slate-950">{durationCards.find((card) => card.group === selectedDuration)?.label} students</h3>
-                <p className="text-xs text-slate-500">{durationTotal.toLocaleString("en-IN")} enrollments · newest joining date first</p>
+                <h3 id="duration-students-heading" className="text-lg font-bold text-slate-950">{selectedDuration === "outstanding" ? "Outstanding balances" : `${durationCards.find((card) => card.group === selectedDuration)?.label} students`}</h3>
+                <p className="text-xs text-slate-500">{durationTotal.toLocaleString("en-IN")} enrollments{selectedDuration === "outstanding" ? ` · ${money(data.totals.pending)} outstanding` : ""} · newest joining date first</p>
               </div>
               <button type="button" onClick={() => setSelectedDuration(null)} aria-label="Close student list" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"><X size={20} /></button>
             </div>

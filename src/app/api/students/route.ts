@@ -54,6 +54,9 @@ export async function GET(req: Request) {
   } else if (status === "due") {
     query.status = "active";
     query.pendingAmount = { $gt: 0 };
+  } else if (status === "outstanding") {
+    query.status = { $ne: "cancelled" };
+    query.pendingAmount = { $gt: 0 };
   } else if (["completed", "cancelled"].includes(status)) query.status = status;
   else if (status !== "all")
     return NextResponse.json({ success: false, error: "Invalid enrollment status filter." }, { status: 400 });
